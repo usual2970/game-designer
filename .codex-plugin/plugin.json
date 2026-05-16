@@ -2,11 +2,23 @@
   "name": "game-designer",
   "version": "0.1.0",
   "description": "Activity-style H5 game backend scaffolding, SDK integration, and PaaS deployment skills for Codex",
-  "skills": "./plugin/skills/",
+  "skills": "./skills/",
   "interface": {
     "displayName": "Game Designer",
     "shortDescription": "H5 game backend scaffolding and deployment",
-    "category": "Productivity",
-    "capabilities": ["Read", "Write"]
+    "longDescription": "Game Designer helps code agents connect an activity-style H5 game to a Go backend template, TypeScript SDK, and deploy CLI.",
+    "developerName": "Game Designer Team",
+    "category": "Coding",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "$setup-game-designer-cli",
+      "$create-game-server",
+      "$connect-js-sdk"
+    ],
+    "screenshots": []
   }
 }

@@ -10,7 +10,7 @@ The Game Designer repository is an installable code-agent plugin. The repository
 game-designer-backend/           <- Install from here (the plugin root)
 ├── .claude-plugin/plugin.json   <- Claude Code manifest
 ├── .codex-plugin/plugin.json    <- Codex manifest
-├── plugin/skills/               <- Six shared skills
+├── skills/                      <- Six shared skills
 ├── server-template/             <- Go server template
 ├── cli/                         <- Go deploy CLI source
 ├── sdk-js/                      <- TypeScript SDK
@@ -40,18 +40,19 @@ Install the plugin so it persists across sessions:
 ```bash
 cd game-designer-backend
 
-# Add this repo as a local marketplace (note: ./ not bare .)
+# Add this repo as a local marketplace from the repository root
 claude plugin marketplace add ./
 
 # Install the plugin
 claude plugin install game-designer@game-designer-marketplace
 ```
 
-If the marketplace install shows 0 skills (known bug), use a symlink workaround:
+If the marketplace install shows 0 skills, first confirm `.claude-plugin/plugin.json` points to `./skills/` and that the command ran from the repository root. For local development, `claude --plugin-dir .` is the most direct path.
+
+If a local marketplace cache is stale, remove and reinstall the marketplace:
 
 ```bash
-mkdir -p ~/.claude/plugins/marketplaces
-ln -sfn "$(pwd)" ~/.claude/plugins/marketplaces/game-designer-marketplace
+claude plugin marketplace remove game-designer-marketplace
 claude plugin marketplace add ./
 claude plugin install game-designer@game-designer-marketplace
 ```
@@ -98,8 +99,9 @@ Plugin installation does **not** compile the deploy CLI. After installation, the
 # "set up the game-designer deploy CLI"
 
 # Option B: Build manually
-cd cli && GOWORK=off go build -o game-designer ./cmd/game-designer
-./cli/game-designer version
+cd cli
+GOWORK=off go build -o game-designer ./cmd/game-designer
+./game-designer version
 ```
 
 After the CLI is built, follow the [Agent Golden Path](agent-golden-path.md) to create a game backend, connect the SDK, and deploy.
@@ -117,7 +119,7 @@ After the CLI is built, follow the [Agent Golden Path](agent-golden-path.md) to 
 
 ### Skills not visible after install
 
-The most common cause is installing from the `plugin/` subdirectory instead of the repository root. The plugin root must be the repository root so that `server-template/`, `cli/`, `sdk-js/`, and other bundled assets are available.
+The most common cause is installing from a subdirectory instead of the repository root. The plugin root must be the repository root so that `skills/`, `server-template/`, `cli/`, `sdk-js/`, and other bundled assets are available.
 
 Fix: reinstall from the repository root.
 
@@ -135,9 +137,9 @@ Fix: run `/reload-plugins` in session, or remove and reinstall.
 
 ### Marketplace install shows 0 skills
 
-Known bug with local marketplace copy (the plugin directory is copied but internal paths don't resolve).
+Local marketplace caches can become stale after moving skills or changing manifests.
 
-Fix: use the symlink workaround documented in the marketplace install section above.
+Fix: remove and re-add the marketplace from the repository root, or use `claude --plugin-dir .` for local development.
 
 ### CLI build fails
 

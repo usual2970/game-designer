@@ -28,14 +28,15 @@ With a custom server URL:
 
 ## What It Checks
 
-1. **Contract validation** — OpenAPI schema is valid
-2. **Server build** — Go server compiles without errors
-3. **Server tests** — All Go unit and integration tests pass
-4. **SDK build** — TypeScript SDK compiles
-5. **SDK tests** — SDK test suite passes
-6. **CLI preflight** — Deploy CLI preflight checks pass
-7. **Server connectivity** — Server is reachable (if running)
-8. **Activity loop** — Full golden path through live server (if running)
+1. **Plugin package validation** — manifests, root `skills/`, and bundled assets are valid
+2. **Contract validation** — OpenAPI schema is valid
+3. **Server build** — Go server compiles without errors
+4. **Server tests** — All Go unit and integration tests pass
+5. **SDK build** — TypeScript SDK compiles
+6. **SDK tests** — SDK test suite passes
+7. **CLI preflight** — Deploy CLI preflight checks pass
+8. **Server connectivity** — Server is reachable (if running)
+9. **Activity loop** — Full golden path through live server (if running)
 
 ## Output
 

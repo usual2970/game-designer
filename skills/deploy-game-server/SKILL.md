@@ -25,7 +25,7 @@ Deploy the game server to the team PaaS using the CLI.
 1. Verify the deploy CLI binary is available and reports its version
 2. Run the deploy command:
    ```bash
-   cd cli && go run ./cmd/game-designer deploy \
+   cd cli && ./game-designer deploy \
      --server-path ../server-template \
      --app-name <game-name> \
      --env production \

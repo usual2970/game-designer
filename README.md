@@ -78,7 +78,7 @@ contracts/          OpenAPI contract (single source of truth)
 server-template/    Go backend template
 sdk-js/             TypeScript H5 SDK
 cli/                Go deploy CLI
-plugin/skills/      Agent-facing plugin skills
+skills/             Agent-facing plugin skills
 examples/           Example H5 activity game
 scripts/            Verification scripts
 docs/               Documentation
@@ -128,7 +128,6 @@ cd examples/h5-activity-game && npm test
 - [Agent golden path](docs/integration/agent-golden-path.md)
 - [Contract-first workflow](docs/integration/contract-first-workflow.md)
 - [Local verification](docs/integration/local-verification.md)
-- [Agent golden path](docs/integration/agent-golden-path.md)
 - [SDK usage](docs/integration/sdk-usage.md)
 - [PaaS provider](docs/deployment/paas-provider.md)
 - [Deployed verification](docs/deployment/deployed-verification.md)

@@ -41,49 +41,55 @@ check() {
 echo "=== Game Designer Server — Local Verification ==="
 echo ""
 
-# Step 1: Verify contract
-echo "1. Contract validation"
+# Step 1: Verify plugin package
+echo "1. Plugin package validation"
+cd "$ROOT_DIR"
+check "plugin package validates" ./scripts/verify-plugin-package.sh
+
+# Step 2: Verify contract
+echo ""
+echo "2. Contract validation"
 cd "$ROOT_DIR/contracts"
 check "contract validates" npx swagger-cli validate game-server.openapi.yaml
 
-# Step 2: Build server
+# Step 3: Build server
 echo ""
-echo "2. Server build"
+echo "3. Server build"
 cd "$ROOT_DIR/server-template"
 check "go build" env GOWORK=off go build ./...
 
-# Step 3: Run server tests
+# Step 4: Run server tests
 echo ""
-echo "3. Server tests"
+echo "4. Server tests"
 check "server tests pass" env GOWORK=off go test ./...
 
-# Step 4: Build SDK
+# Step 5: Build SDK
 echo ""
-echo "4. SDK build"
+echo "5. SDK build"
 cd "$ROOT_DIR/sdk-js"
 check "sdk builds" npm run build
 
-# Step 5: Run SDK tests
+# Step 6: Run SDK tests
 echo ""
-echo "5. SDK tests"
+echo "6. SDK tests"
 check "sdk tests pass" npm test
 
-# Step 6: CLI preflight
+# Step 7: CLI preflight
 echo ""
-echo "6. CLI preflight"
+echo "7. CLI preflight"
 cd "$ROOT_DIR/cli"
 check "cli preflight" env GOWORK=off go run ./cmd/game-designer preflight --server-path ../server-template
 
-# Step 7: Check server is running
+# Step 8: Check server is running
 echo ""
-echo "7. Server connectivity"
+echo "8. Server connectivity"
 if curl -sf -o /dev/null "$SERVER_URL/api/v1/session" 2>/dev/null; then
   echo -e "  ${GREEN}PASS${NC} server reachable at $SERVER_URL"
   ((pass++))
 
-  # Step 8: Activity loop against live server
+  # Step 9: Activity loop against live server
   echo ""
-  echo "8. Activity loop (live server)"
+  echo "9. Activity loop (live server)"
 
   # Create session
   SESSION_RESP=$(curl -sf -X POST "$SERVER_URL/api/v1/session" \

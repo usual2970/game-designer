@@ -3,7 +3,7 @@
 #
 # Usage: ./scripts/verify-plugin-package.sh
 #
-# Checks manifests, skills, bundled assets, and documentation references.
+# Checks manifests, root skills, bundled assets, and documentation references.
 # Run from the repository root.
 
 set -euo pipefail
@@ -68,8 +68,22 @@ assert c['skills'] == d['skills'], f'{c[\"skills\"]} != {d[\"skills\"]}'
 # 3. Skills discovery
 echo ""
 echo "3. Skills"
-SKILLS_DIR="$ROOT_DIR/plugin/skills"
+SKILLS_DIR="$ROOT_DIR/skills"
 check "Skills directory exists" test -d "$SKILLS_DIR"
+check "Deprecated plugin/skills directory absent" test ! -d "$ROOT_DIR/plugin/skills"
+check "Deprecated plugins/game-designer wrapper absent" test ! -e "$ROOT_DIR/plugins/game-designer"
+check "Optional .agents local catalog is valid when present" python3 -c "
+import json, pathlib
+path = pathlib.Path('$ROOT_DIR/.agents/plugins/marketplace.json')
+if path.exists():
+    data = json.load(path.open())
+    plugin = next((p for p in data.get('plugins', []) if p.get('name') == 'game-designer'), None)
+    assert plugin is not None
+    assert plugin.get('source', {}).get('source') == 'local'
+    assert plugin.get('source', {}).get('path') == '.'
+"
+check "Claude manifest points at ./skills/" python3 -c "import json; d=json.load(open('$ROOT_DIR/.claude-plugin/plugin.json')); assert d.get('skills') == './skills/'"
+check "Codex manifest points at ./skills/" python3 -c "import json; d=json.load(open('$ROOT_DIR/.codex-plugin/plugin.json')); assert d.get('skills') == './skills/'"
 
 # Enumerate skills
 skill_count=0
@@ -136,17 +150,34 @@ done
 # 6. Documentation references
 echo ""
 echo "6. Documentation"
-check "plugin/README.md exists" test -f "$ROOT_DIR/plugin/README.md"
-check "plugin/INSTALL.md exists" test -f "$ROOT_DIR/plugin/INSTALL.md"
+check "README.md exists" test -f "$ROOT_DIR/README.md"
 check "docs/integration/plugin-installation.md exists" test -f "$ROOT_DIR/docs/integration/plugin-installation.md"
 check "docs/integration/agent-golden-path.md exists" test -f "$ROOT_DIR/docs/integration/agent-golden-path.md"
 check "cli/README.md references setup skill" grep -q "setup-game-designer-cli" "$ROOT_DIR/cli/README.md"
+check "README references root skills directory" grep -q "skills/" "$ROOT_DIR/README.md"
+check "Install docs reference root skills directory" grep -q "skills/" "$ROOT_DIR/docs/integration/plugin-installation.md"
+check "User-facing docs do not advertise deprecated plugin roots" python3 -c "
+from pathlib import Path
+files = [
+    Path('$ROOT_DIR/README.md'),
+    Path('$ROOT_DIR/docs/integration/plugin-installation.md'),
+    Path('$ROOT_DIR/docs/integration/agent-golden-path.md'),
+    Path('$ROOT_DIR/docs/integration/local-verification.md'),
+]
+bad = []
+for path in files:
+    text = path.read_text()
+    for marker in ['plugin/skills/', 'plugins/game-designer/']:
+        if marker in text:
+            bad.append(f'{path}:{marker}')
+assert not bad, ', '.join(bad)
+"
 
 # 7. Install docs do not claim CLI is built during install
 echo ""
 echo "7. Install docs accuracy"
-check "INSTALL.md does not claim auto-CLI-build" python3 -c "
-text = open('$ROOT_DIR/plugin/INSTALL.md').read()
+check "Install docs do not claim auto-CLI-build" python3 -c "
+text = open('$ROOT_DIR/docs/integration/plugin-installation.md').read().lower().replace('*', '')
 assert 'does not compile' in text.lower() or 'does not build' in text.lower()
 "
 

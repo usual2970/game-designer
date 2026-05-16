@@ -24,8 +24,9 @@ Skill: setup-game-designer-cli
 Build the Go deploy CLI from source. This step is required on first use and when the CLI source changes.
 
 ```bash
-cd cli && GOWORK=off go build -o game-designer ./cmd/game-designer
-./cli/game-designer version
+cd cli
+GOWORK=off go build -o game-designer ./cmd/game-designer
+./game-designer version
 ```
 
 Expected: binary builds and reports its version without errors.

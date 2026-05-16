@@ -27,7 +27,7 @@ Run pre-deploy checks and prepare the game server for deployment.
 1. Verify the deploy CLI binary is available and reports its version
 2. Run preflight checks using the CLI:
    ```bash
-   cd cli && go run ./cmd/game-designer preflight --server-path ../server-template
+   cd cli && ./game-designer preflight --server-path ../server-template
    ```
 3. Verify the server builds without errors: `cd server-template && GOWORK=off go build ./...`
 4. Verify the server tests pass: `cd server-template && GOWORK=off go test ./... -v`
