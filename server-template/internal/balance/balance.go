@@ -1,10 +1,11 @@
 package balance
 
 import (
+	"github.com/example/game-designer-server/internal/slot"
 	"github.com/example/game-designer-server/internal/store"
 )
 
-const DefaultBalance = 1000
+const DefaultBalance = slot.DefaultBalance
 
 type Service struct {
 	store           *store.Store

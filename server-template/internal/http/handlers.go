@@ -9,6 +9,7 @@ import (
 	"github.com/example/game-designer-server/internal/profile"
 	"github.com/example/game-designer-server/internal/session"
 	"github.com/example/game-designer-server/internal/slot"
+	"github.com/example/game-designer-server/internal/store"
 )
 
 type Handler struct {
@@ -137,7 +138,7 @@ func (h *Handler) spin(w http.ResponseWriter, r *http.Request, playerID string) 
 			writeError(w, http.StatusBadRequest, "INVALID_PARAMETERS", err.Error(), nil)
 			return
 		}
-		if errors.Is(err, slot.ErrInsufficientBalance) {
+		if errors.Is(err, store.ErrInsufficientBalance) {
 			writeError(w, http.StatusBadRequest, "INSUFFICIENT_BALANCE", err.Error(), nil)
 			return
 		}
@@ -183,11 +184,10 @@ func intQuery(r *http.Request, key string, defaultVal int) int {
 	if v == "" {
 		return defaultVal
 	}
-	var n int
-	if _, err := parseSimpleInt(v); err != nil {
+	n, err := parseSimpleInt(v)
+	if err != nil {
 		return defaultVal
 	}
-	n, _ = parseSimpleInt(v)
 	return n
 }
 

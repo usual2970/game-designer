@@ -31,7 +31,7 @@ func setupTestHandler() *Handler {
 	balSvc := balance.NewService(s)
 	sessSvc := session.NewService(s, time.Hour, balSvc)
 	profSvc := profile.NewService(s)
-	slotSvc := slot.NewService(s, balSvc)
+	slotSvc := slot.NewService(s)
 	return NewHandler(sessSvc, profSvc, slotSvc, balSvc)
 }
 
@@ -40,7 +40,7 @@ func setupTestHandlerWithRNG(rng slot.RNG) (*Handler, *slot.Service) {
 	balSvc := balance.NewService(s)
 	sessSvc := session.NewService(s, time.Hour, balSvc)
 	profSvc := profile.NewService(s)
-	slotSvc := slot.NewService(s, balSvc)
+	slotSvc := slot.NewService(s)
 	slotSvc.SetRNG(rng)
 	return NewHandler(sessSvc, profSvc, slotSvc, balSvc), slotSvc
 }

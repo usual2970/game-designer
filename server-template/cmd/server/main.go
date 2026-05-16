@@ -20,7 +20,7 @@ func main() {
 	balSvc := balance.NewService(s)
 	sessSvc := session.NewService(s, 24*time.Hour, balSvc)
 	profSvc := profile.NewService(s)
-	slotSvc := slot.NewService(s, balSvc)
+	slotSvc := slot.NewService(s)
 
 	handler := httphandler.NewHandler(sessSvc, profSvc, slotSvc, balSvc)
 

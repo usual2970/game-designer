@@ -1,9 +1,9 @@
 package slot
 
 import (
+	"errors"
 	"testing"
 
-	"github.com/example/game-designer-server/internal/balance"
 	"github.com/example/game-designer-server/internal/store"
 )
 
@@ -21,8 +21,7 @@ func (d *deterministicRNG) Intn(n int) int {
 
 func setupTestSlotService(rng RNG) (*Service, *store.Store) {
 	s := store.New()
-	balSvc := balance.NewService(s)
-	svc := NewService(s, balSvc)
+	svc := NewService(s)
 	if rng != nil {
 		svc.SetRNG(rng)
 	}
@@ -141,8 +140,8 @@ func TestSpin_InsufficientBalance(t *testing.T) {
 	s.InitBalance("player1", 5)
 
 	_, err := svc.Spin("player1", SpinRequest{Wager: 10})
-	if err != ErrInsufficientBalance {
-		t.Errorf("expected ErrInsufficientBalance, got %v", err)
+	if !errors.Is(err, store.ErrInsufficientBalance) {
+		t.Errorf("expected store.ErrInsufficientBalance, got %v", err)
 	}
 }
 

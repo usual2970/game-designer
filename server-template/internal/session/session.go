@@ -48,7 +48,6 @@ func (svc *Service) CreateOrResume(req CreateSessionRequest) (*SessionResponse, 
 	isNew := true
 	if profile, exists := svc.store.GetProfile(req.PlayerID); exists {
 		isNew = profile.Nickname == "" && req.Nickname == ""
-		_ = profile
 	}
 
 	svc.store.SaveSession(&store.SessionRecord{

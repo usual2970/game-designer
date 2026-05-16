@@ -152,9 +152,7 @@ func (s *Store) UpdateBalance(playerID string, wager, payout int64, rec *SpinRec
 	return bal.Balance, nil
 }
 
-var ErrInsufficientBalance = func() *insufficientBalanceErr {
-	return &insufficientBalanceErr{}
-}()
+var ErrInsufficientBalance = &insufficientBalanceErr{}
 
 type insufficientBalanceErr struct{}
 

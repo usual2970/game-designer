@@ -10,10 +10,11 @@ import (
 )
 
 const (
-	MinWager = 1
-	MaxWager = 100
-	NumReels = 3
-	NumRows  = 3
+	MinWager       = 1
+	MaxWager       = 100
+	NumReels       = 3
+	NumRows        = 3
+	DefaultBalance = 1000
 )
 
 type Symbol struct {
@@ -62,26 +63,19 @@ func (cryptoRNG) Intn(n int) int {
 }
 
 var (
-	ErrInvalidWager     = errors.New("wager must be between 1 and 100")
-	ErrInsufficientBalance = errors.New("insufficient virtual credits")
+	ErrInvalidWager = errors.New("wager must be between 1 and 100")
 )
 
 type Service struct {
-	store   *store.Store
-	balance BalanceChecker
-	rng     RNG
-	symbols []Symbol
+	store    *store.Store
+	rng      RNG
+	symbols  []Symbol
 	paylines []Payline
 }
 
-type BalanceChecker interface {
-	Init(playerID string)
-}
-
-func NewService(s *store.Store, bc BalanceChecker) *Service {
+func NewService(s *store.Store) *Service {
 	return &Service{
 		store:    s,
-		balance:  bc,
 		rng:      cryptoRNG{},
 		symbols:  DefaultSymbols,
 		paylines: DefaultPaylines,
@@ -128,7 +122,7 @@ func (svc *Service) GetConfig() *SlotConfigResponse {
 		Symbols:        symbols,
 		MinWager:       MinWager,
 		MaxWager:       MaxWager,
-		DefaultBalance: 1000,
+		DefaultBalance: DefaultBalance,
 	}
 }
 
@@ -155,16 +149,6 @@ type SpinResult struct {
 func (svc *Service) Spin(playerID string, req SpinRequest) (*SpinResult, error) {
 	if req.Wager < MinWager || req.Wager > MaxWager {
 		return nil, ErrInvalidWager
-	}
-
-	svc.balance.Init(playerID)
-
-	balRec, hasBal := svc.store.GetBalance(playerID)
-	if hasBal && balRec.Balance < req.Wager {
-		return nil, ErrInsufficientBalance
-	}
-	if !hasBal {
-		return nil, ErrInsufficientBalance
 	}
 
 	reels := svc.generateReels()
