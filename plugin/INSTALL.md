@@ -57,6 +57,40 @@ cd cli && GOWORK=off go build -o game-designer ./cmd/game-designer
 ./scripts/verify-plugin-package.sh
 ```
 
+## Updating
+
+When the plugin content (skills, manifests, docs) or the CLI source changes:
+
+**1. Update the plugin**
+
+```bash
+# Pull latest changes
+git pull
+
+# Reinstall to refresh the Claude Code cache
+claude plugin install .
+
+# If still showing old version, remove and reinstall
+claude plugin remove game-designer
+claude plugin install .
+```
+
+**2. Rebuild the CLI**
+
+Plugin update refreshes the source but does not recompile the binary:
+
+```bash
+# In a Claude Code session, ask: "set up the game-designer deploy CLI"
+# Or manually:
+cd cli && GOWORK=off go build -o game-designer ./cmd/game-designer
+```
+
+**3. Validate**
+
+```bash
+./scripts/verify-plugin-package.sh
+```
+
 ## Important Notes
 
 - **Plugin installation does not compile the CLI.** Run `setup-game-designer-cli` after installing the plugin.
