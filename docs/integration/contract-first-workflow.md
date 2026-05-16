@@ -201,10 +201,10 @@ return writeError(w, http.StatusBadRequest, "INVALID_PARAMETERS", map[string]int
 **TypeScript SDK**:
 ```typescript
 try {
-    await sdk.submitScore({ score: -1 });
+    await sdk.spin({ wager: 0 });
 } catch (error: ApiError) {
     console.error(error.code); // "INVALID_PARAMETERS"
-    console.error(error.details?.fields); // ["score"]
+    console.error(error.details?.fields); // ["wager"]
 }
 ```
 

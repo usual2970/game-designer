@@ -1,8 +1,8 @@
 openapi: 3.0.3
 info:
   title: Game Designer Server API
-  description: MVP API contract for activity-style H5 mini-game backends.
-  version: 0.1.0
+  description: MVP API contract for slot-machine H5 mini-game backends with virtual credits and server-authoritative spin resolution.
+  version: 0.2.0
   contact:
     name: Game Designer Team
 
@@ -15,12 +15,14 @@ tags:
     description: Player session and authentication
   - name: Profile
     description: Player profile management
-  - name: GameState
-    description: Game state persistence and resume
-  - name: Score
-    description: Score submission
+  - name: Slot
+    description: Slot machine configuration and spin resolution
+  - name: Balance
+    description: Virtual credit balance
+  - name: SpinHistory
+    description: Spin history records
   - name: Leaderboard
-    description: Leaderboard queries
+    description: Slot leaderboard ranked by highest virtual credit balance
 
 paths:
   /session:
@@ -107,22 +109,20 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
-  /game-state:
+  /slot/config:
     get:
-      operationId: getGameState
-      tags: [GameState]
-      summary: Get the current saved game state
+      operationId: getSlotConfig
+      tags: [Slot]
+      summary: Get slot machine configuration including reels, paylines, and wager limits
       parameters:
         - $ref: '#/components/parameters/SessionToken'
       responses:
         '200':
-          description: Current game state
+          description: Slot machine configuration
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/GameStateResponse'
-        '204':
-          description: No saved game state exists for this player
+                $ref: '#/components/schemas/SlotConfigResponse'
         '401':
           description: Missing or invalid session token
           content:
@@ -130,31 +130,20 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
-    put:
-      operationId: saveGameState
-      tags: [GameState]
-      summary: Save current game state
+  /balance:
+    get:
+      operationId: getBalance
+      tags: [Balance]
+      summary: Get current virtual credit balance
       parameters:
         - $ref: '#/components/parameters/SessionToken'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/SaveGameStateRequest'
       responses:
         '200':
-          description: Game state saved
+          description: Current virtual credit balance
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/GameStateResponse'
-        '400':
-          description: Invalid request parameters
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
+                $ref: '#/components/schemas/BalanceResponse'
         '401':
           description: Missing or invalid session token
           content:
@@ -162,11 +151,15 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
-  /scores:
+  /spin:
     post:
-      operationId: submitScore
-      tags: [Score]
-      summary: Submit a score for the current player
+      operationId: spin
+      tags: [Slot]
+      summary: Request a server-authoritative spin with a virtual credit wager
+      description: |
+        Validates the wager, deducts credits, resolves reels, evaluates paylines,
+        applies payout, and records the spin outcome. The server is authoritative
+        for all spin resolution — the client must not calculate payouts locally.
       parameters:
         - $ref: '#/components/parameters/SessionToken'
       requestBody:
@@ -174,20 +167,58 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/SubmitScoreRequest'
+              $ref: '#/components/schemas/SpinRequest'
       responses:
         '200':
-          description: Score accepted
+          description: Spin resolved with reels, payline wins, payout, and updated balance
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SubmitScoreResponse'
+                $ref: '#/components/schemas/SpinResult'
         '400':
-          description: Invalid request parameters
+          description: Invalid wager or parameters
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+        '401':
+          description: Missing or invalid session token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /spin/history:
+    get:
+      operationId: getSpinHistory
+      tags: [SpinHistory]
+      summary: Get spin history for the current player
+      parameters:
+        - $ref: '#/components/parameters/SessionToken'
+        - name: limit
+          in: query
+          description: Maximum number of spin records to return
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: offset
+          in: query
+          description: Number of spin records to skip
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        '200':
+          description: Spin history records
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SpinHistoryResponse'
         '401':
           description: Missing or invalid session token
           content:
@@ -197,9 +228,9 @@ paths:
 
   /leaderboard:
     get:
-      operationId: getLeaderboard
+      operationId: getSlotLeaderboard
       tags: [Leaderboard]
-      summary: Get the current leaderboard
+      summary: Get slot leaderboard ranked by highest virtual credit balance
       parameters:
         - $ref: '#/components/parameters/SessionToken'
         - name: limit
@@ -221,11 +252,11 @@ paths:
             default: 0
       responses:
         '200':
-          description: Leaderboard entries
+          description: Slot leaderboard entries
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/LeaderboardResponse'
+                $ref: '#/components/schemas/SlotLeaderboardResponse'
         '401':
           description: Missing or invalid session token
           content:
@@ -312,65 +343,182 @@ components:
           type: string
           maxLength: 512
 
-    SaveGameStateRequest:
+    SymbolDefinition:
       type: object
-      required: [data]
+      required: [name, payoutMultiplier]
       properties:
-        data:
-          type: object
-          description: Arbitrary game state data to persist
-          additionalProperties: true
-        checkpoint:
+        name:
           type: string
-          description: Named checkpoint or level identifier for this save
+          description: Symbol identifier (e.g. Cherry, Seven, BAR)
+        payoutMultiplier:
+          type: integer
+          description: Multiplier applied when this symbol fills a payline
+          minimum: 0
 
-    GameStateResponse:
+    PaylineDefinition:
       type: object
-      required: [data, savedAt]
+      required: [id, positions]
       properties:
-        data:
-          type: object
-          additionalProperties: true
-        checkpoint:
+        id:
+          type: integer
+          description: Payline identifier
+          minimum: 1
+        positions:
+          type: array
+          description: Row positions for each reel column (0-based row index per reel)
+          items:
+            type: integer
+            minimum: 0
+          minItems: 3
+          maxItems: 5
+
+    SlotConfigResponse:
+      type: object
+      required: [reels, rows, paylines, symbols, minWager, maxWager, defaultBalance]
+      properties:
+        reels:
+          type: integer
+          description: Number of reel columns
+          minimum: 3
+          maximum: 5
+        rows:
+          type: integer
+          description: Number of visible rows per reel
+          minimum: 1
+          maximum: 5
+        paylines:
+          type: array
+          description: Active payline definitions
+          items:
+            $ref: '#/components/schemas/PaylineDefinition'
+        symbols:
+          type: array
+          description: Available symbol definitions
+          items:
+            $ref: '#/components/schemas/SymbolDefinition'
+        minWager:
+          type: integer
+          description: Minimum virtual credit wager per spin
+          minimum: 1
+        maxWager:
+          type: integer
+          description: Maximum virtual credit wager per spin
+          minimum: 1
+        defaultBalance:
+          type: integer
+          description: Starting virtual credit balance for new players
+          minimum: 0
+
+    BalanceResponse:
+      type: object
+      required: [balance]
+      properties:
+        balance:
+          type: integer
+          description: Current virtual credit balance
+          minimum: 0
+
+    SpinRequest:
+      type: object
+      required: [wager]
+      properties:
+        wager:
+          type: integer
+          description: Virtual credit wager for this spin
+          minimum: 1
+
+    ReelWindow:
+      type: array
+      description: Symbol grid displayed as rows x reels (outer array is rows, inner array is reel columns)
+      items:
+        type: array
+        items:
           type: string
-        savedAt:
+      minItems: 1
+
+    PaylineWin:
+      type: object
+      required: [paylineId, symbol, count, payout]
+      properties:
+        paylineId:
+          type: integer
+          description: Payline identifier that triggered the win
+        symbol:
+          type: string
+          description: Winning symbol name
+        count:
+          type: integer
+          description: Number of consecutive matching symbols on this payline
+          minimum: 2
+        payout:
+          type: integer
+          description: Payout in virtual credits for this payline win
+          minimum: 0
+
+    SpinResult:
+      type: object
+      required: [reels, totalPayout, balance, spinId, wager]
+      properties:
+        spinId:
+          type: string
+          description: Unique spin record identifier
+        wager:
+          type: integer
+          description: Wager amount deducted for this spin
+        reels:
+          $ref: '#/components/schemas/ReelWindow'
+        paylineWins:
+          type: array
+          description: Payline wins for this spin (empty if no wins)
+          items:
+            $ref: '#/components/schemas/PaylineWin'
+        totalPayout:
+          type: integer
+          description: Total payout in virtual credits (sum of all payline wins)
+          minimum: 0
+        balance:
+          type: integer
+          description: Virtual credit balance after this spin
+          minimum: 0
+
+    SpinHistoryEntry:
+      type: object
+      required: [spinId, wager, totalPayout, balance, reels, spunAt]
+      properties:
+        spinId:
+          type: string
+        wager:
+          type: integer
+        totalPayout:
+          type: integer
+        balance:
+          type: integer
+          description: Balance after this spin
+        reels:
+          $ref: '#/components/schemas/ReelWindow'
+        paylineWins:
+          type: array
+          items:
+            $ref: '#/components/schemas/PaylineWin'
+        spunAt:
           type: string
           format: date-time
 
-    SubmitScoreRequest:
+    SpinHistoryResponse:
       type: object
-      required: [score]
+      required: [entries, total]
       properties:
-        score:
+        entries:
+          type: array
+          items:
+            $ref: '#/components/schemas/SpinHistoryEntry'
+        total:
           type: integer
-          description: Player score for this submission
-          minimum: 0
-        metadata:
-          type: object
-          description: Optional metadata about the score submission
-          additionalProperties: true
+          description: Total number of spin history records
 
-    SubmitScoreResponse:
+    SlotLeaderboardEntry:
       type: object
-      required: [accepted, rank]
-      properties:
-        accepted:
-          type: boolean
-          description: Whether the score was accepted
-        rank:
-          type: integer
-          description: Player current rank on the leaderboard after submission
-          nullable: true
-        bestScore:
-          type: integer
-          description: Player best score (may differ from submitted score if not highest)
-        isNewBest:
-          type: boolean
-          description: Whether this submission set a new personal best
-
-    LeaderboardEntry:
-      type: object
-      required: [rank, playerId, nickname, score, achievedAt]
+      required: [rank, playerId, nickname, balance, updatedAt]
       properties:
         rank:
           type: integer
@@ -379,20 +527,21 @@ components:
           type: string
         nickname:
           type: string
-        score:
+        balance:
           type: integer
-        achievedAt:
+          description: Highest virtual credit balance achieved
+        updatedAt:
           type: string
           format: date-time
 
-    LeaderboardResponse:
+    SlotLeaderboardResponse:
       type: object
       required: [entries, total]
       properties:
         entries:
           type: array
           items:
-            $ref: '#/components/schemas/LeaderboardEntry'
+            $ref: '#/components/schemas/SlotLeaderboardEntry'
         total:
           type: integer
           description: Total number of leaderboard entries
@@ -412,6 +561,7 @@ components:
             - UNAUTHORIZED
             - NOT_FOUND
             - SESSION_EXPIRED
+            - INSUFFICIENT_BALANCE
             - INTERNAL_ERROR
         details:
           type: object
