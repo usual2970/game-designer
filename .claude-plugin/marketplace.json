@@ -1,0 +1,15 @@
+{
+  "name": "game-designer-marketplace",
+  "description": "Game Designer H5 game backend skills for code agents",
+  "owner": {
+    "name": "Game Designer Team"
+  },
+  "plugins": [
+    {
+      "name": "game-designer",
+      "source": "./",
+      "description": "Activity-style H5 game backend scaffolding, SDK integration, and PaaS deployment skills",
+      "version": "0.1.0"
+    }
+  ]
+}
