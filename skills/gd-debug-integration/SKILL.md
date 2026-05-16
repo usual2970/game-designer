@@ -1,10 +1,10 @@
 ---
-name: debug-server-integration
+name: gd-debug-integration
 description: Triage SDK, server, contract, and deployment failures
 trigger: user reports integration failure, SDK errors, server errors, deploy issues, or verification failures
 ---
 
-# debug-server-integration
+# gd-debug-integration
 
 Triage and diagnose SDK, server, contract, and deployment integration failures for the slot machine backend.
 
@@ -115,7 +115,7 @@ cd cli && go run ./cmd/game-designer preflight --server-path ../server-template
 ```
 Check preflight output for specific failure points.
 
-**Fix:** Use `prepare-deploy` to resolve issues before retrying.
+**Fix:** Use `gd-prepare-deploy` to resolve issues before retrying.
 
 ### Category 8: Verification Failure
 

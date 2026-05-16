@@ -1,10 +1,10 @@
 ---
-name: connect-js-sdk
+name: gd-connect-sdk
 description: Connect the TypeScript H5 SDK to an H5 game project
 trigger: user asks to connect SDK, add game-designer SDK, integrate backend SDK into H5 game
 ---
 
-# connect-js-sdk
+# gd-connect-sdk
 
 Connect the Game Designer TypeScript SDK to an H5 slot machine game project.
 
@@ -12,7 +12,7 @@ Connect the Game Designer TypeScript SDK to an H5 slot machine game project.
 
 - Node.js 18+ installed and on PATH
 - The plugin installed with `sdk-js/` accessible
-- A running game server (from `create-game-server`) or a known server URL
+- A running game server (from `gd-create-server`) or a known server URL
 
 ## When to Apply
 

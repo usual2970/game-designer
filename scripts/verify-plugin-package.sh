@@ -153,7 +153,7 @@ echo "6. Documentation"
 check "README.md exists" test -f "$ROOT_DIR/README.md"
 check "docs/integration/plugin-installation.md exists" test -f "$ROOT_DIR/docs/integration/plugin-installation.md"
 check "docs/integration/agent-golden-path.md exists" test -f "$ROOT_DIR/docs/integration/agent-golden-path.md"
-check "cli/README.md references setup skill" grep -q "setup-game-designer-cli" "$ROOT_DIR/cli/README.md"
+check "cli/README.md references setup skill" grep -q "gd-setup-cli" "$ROOT_DIR/cli/README.md"
 check "README references root skills directory" grep -q "skills/" "$ROOT_DIR/README.md"
 check "Install docs reference root skills directory" grep -q "skills/" "$ROOT_DIR/docs/integration/plugin-installation.md"
 check "User-facing docs do not advertise deprecated plugin roots" python3 -c "
@@ -197,12 +197,78 @@ assert not bad, ', '.join(bad)
 check "Skills reference slot machine concepts" python3 -c "
 from pathlib import Path
 skills_dir = Path('$ROOT_DIR/skills')
-connect_skill = skills_dir / 'connect-js-sdk' / 'SKILL.md'
+connect_skill = skills_dir / 'gd-connect-sdk' / 'SKILL.md'
 text = connect_skill.read_text()
-assert 'spin' in text.lower() and 'balance' in text.lower(), 'connect-js-sdk skill must reference spin and balance'
+assert 'spin' in text.lower() and 'balance' in text.lower(), 'gd-connect-sdk skill must reference spin and balance'
 "
 check "Example h5-slot-machine exists" test -d "$ROOT_DIR/examples/h5-slot-machine"
 check "Old example h5-activity-game absent" test ! -d "$ROOT_DIR/examples/h5-activity-game"
+
+# 9. Skill naming convention (gd- prefix)
+echo ""
+echo "9. Skill naming convention"
+check "All skill names start with gd- prefix" python3 -c "
+from pathlib import Path
+skills_dir = Path('$ROOT_DIR/skills')
+bad = []
+for skill_dir in sorted(skills_dir.iterdir()):
+    if skill_dir.is_dir():
+        if not skill_dir.name.startswith('gd-'):
+            bad.append(skill_dir.name)
+assert not bad, f'Skills missing gd- prefix: {bad}'
+"
+
+# 10. Skill directory matches frontmatter name
+echo ""
+echo "10. Skill directory/frontmatter alignment"
+check "Every skill directory name matches its frontmatter name" python3 -c "
+import re
+from pathlib import Path
+skills_dir = Path('$ROOT_DIR/skills')
+bad = []
+for skill_dir in sorted(skills_dir.iterdir()):
+    if skill_dir.is_dir():
+        skill_file = skill_dir / 'SKILL.md'
+        if skill_file.exists():
+            text = skill_file.read_text()
+            m = re.search(r'^name:\s*(.+)$', text, re.MULTILINE)
+            if m:
+                frontmatter_name = m.group(1).strip()
+                if frontmatter_name != skill_dir.name:
+                    bad.append(f'{skill_dir.name} vs {frontmatter_name}')
+            else:
+                bad.append(f'{skill_dir.name}: no name in frontmatter')
+assert not bad, f'Mismatches: {bad}'
+"
+
+# 11. Stale old skill name scan (active surfaces only)
+echo ""
+echo "11. Stale skill name scan"
+check "Active surfaces contain no old skill names" python3 -c "
+from pathlib import Path
+old_names = ['setup-game-designer-cli', 'create-game-server', 'connect-js-sdk', 'deploy-game-server', 'debug-server-integration']
+active_files = [
+    Path('$ROOT_DIR/.codex-plugin/plugin.json'),
+    Path('$ROOT_DIR/README.md'),
+    Path('$ROOT_DIR/cli/README.md'),
+    Path('$ROOT_DIR/docs/integration/plugin-installation.md'),
+    Path('$ROOT_DIR/docs/integration/agent-golden-path.md'),
+    Path('$ROOT_DIR/docs/integration/local-verification.md'),
+]
+# Also scan all skill files
+skills_dir = Path('$ROOT_DIR/skills')
+for skill_file in sorted(skills_dir.glob('*/SKILL.md')):
+    active_files.append(skill_file)
+bad = []
+for path in active_files:
+    if not path.exists():
+        continue
+    text = path.read_text()
+    for old_name in old_names:
+        if old_name in text:
+            bad.append(f'{path.relative_to(Path(\"$ROOT_DIR\"))}:{old_name}')
+assert not bad, f'Stale references: {bad}'
+"
 
 # Summary
 echo ""

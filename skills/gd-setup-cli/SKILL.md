@@ -1,10 +1,10 @@
 ---
-name: setup-game-designer-cli
+name: gd-setup-cli
 description: Build and verify the Go deploy CLI for first use
 trigger: user asks to set up deploy CLI, build game-designer CLI, or prepare CLI for deployment
 ---
 
-# setup-game-designer-cli
+# gd-setup-cli
 
 Build and verify the Go deploy CLI after plugin installation.
 
@@ -17,7 +17,7 @@ Build and verify the Go deploy CLI after plugin installation.
 
 - First use after plugin installation
 - The user asks to set up or build the deploy CLI
-- Before running `prepare-deploy` or `deploy-game-server`
+- Before running `gd-prepare-deploy` or `gd-deploy-server`
 - When the CLI binary is missing or may be stale
 
 ## What This Skill Does

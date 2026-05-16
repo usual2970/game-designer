@@ -9,9 +9,9 @@ cd cli
 GOWORK=off go build -o game-designer ./cmd/game-designer
 ```
 
-Agents using the Game Designer plugin should run the `setup-game-designer-cli` skill instead of building manually. That skill handles Go version checks, build, and binary verification in one step.
+Agents using the Game Designer plugin should run the `gd-setup-cli` skill instead of building manually. That skill handles Go version checks, build, and binary verification in one step.
 
-Plugin installation does not compile this binary. Re-run `setup-game-designer-cli` after updating the plugin or changing files under `cli/`.
+Plugin installation does not compile this binary. Re-run `gd-setup-cli` after updating the plugin or changing files under `cli/`.
 
 ## Commands
 

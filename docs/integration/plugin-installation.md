@@ -71,7 +71,7 @@ claude plugin install game-designer@game-designer-marketplace
 After installing, verify the plugin is working:
 
 1. List available skills — the agent should see six Game Designer skills
-2. Build the deploy CLI — ask the agent to run `setup-game-designer-cli`
+2. Build the deploy CLI — ask the agent to run `gd-setup-cli`
 3. Run package validation:
    ```bash
    ./scripts/verify-plugin-package.sh
@@ -84,7 +84,7 @@ After installing, verify the plugin is working:
 1. Open the Codex Plugins UI
 2. Add a local plugin source pointing to the repository root directory
 3. Enable the `game-designer` plugin
-4. Invoke skills using `$skill-name` in the thread (for example, `$setup-game-designer-cli`)
+4. Invoke skills using `$skill-name` in the thread (for example, `$gd-setup-cli`)
 
 ### Post-Install Verification
 
@@ -145,7 +145,7 @@ Fix: remove and re-add the marketplace from the repository root, or use `claude 
 
 The deploy CLI requires Go 1.24+. Verify with `go version`.
 
-Fix: install or update Go, then rebuild with `setup-game-designer-cli`.
+Fix: install or update Go, then rebuild with `gd-setup-cli`.
 
 ### Codex plugin not recognized
 

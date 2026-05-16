@@ -112,11 +112,11 @@ cd examples/h5-slot-machine && npm test
 
 ## Golden Path
 
-0. **Setup CLI** — Use `setup-game-designer-cli` skill to build the deploy CLI (first use only)
-1. **Create** — Use `create-game-server` skill to scaffold the Go backend
-2. **Connect** — Use `connect-js-sdk` skill to wire the SDK into the H5 slot game
+0. **Setup CLI** — Use `gd-setup-cli` skill to build the deploy CLI (first use only)
+1. **Create** — Use `gd-create-server` skill to scaffold the Go backend
+2. **Connect** — Use `gd-connect-sdk` skill to wire the SDK into the H5 slot game
 3. **Verify** — Run `./scripts/verify-local.sh`
-4. **Deploy** — Use `deploy-game-server` skill via the CLI
+4. **Deploy** — Use `gd-deploy-server` skill via the CLI
 5. **Verify deployed** — Run `./scripts/verify-deployed.sh <url>`
 
 ## Capabilities

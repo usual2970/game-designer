@@ -1,10 +1,10 @@
 ---
-name: prepare-deploy
+name: gd-prepare-deploy
 description: Run pre-deploy checks and prepare the game server for deployment
 trigger: user asks to prepare deploy, run preflight, check deployment readiness
 ---
 
-# prepare-deploy
+# gd-prepare-deploy
 
 Run pre-deploy checks and prepare the slot machine game server for deployment.
 
@@ -12,9 +12,9 @@ Run pre-deploy checks and prepare the slot machine game server for deployment.
 
 - Go 1.24+ installed and on PATH
 - Node.js 18+ installed and on PATH
-- The deploy CLI built and verified (run `setup-game-designer-cli` first)
-- The game server created (run `create-game-server` first)
-- The SDK connected (run `connect-js-sdk` first)
+- The deploy CLI built and verified (run `gd-setup-cli` first)
+- The game server created (run `gd-create-server` first)
+- The SDK connected (run `gd-connect-sdk` first)
 
 ## When to Apply
 
@@ -73,7 +73,7 @@ Ready to deploy.
 
 ## Failure Output
 
-- Deploy CLI missing: Run `setup-game-designer-cli` to build the CLI first
+- Deploy CLI missing: Run `gd-setup-cli` to build the CLI first
 - Server build failure: Report Go compiler errors
 - Test failure: Report which tests failed and what they expect
 - SDK build failure: Report TypeScript errors

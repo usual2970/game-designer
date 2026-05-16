@@ -15,9 +15,9 @@
       "Write"
     ],
     "defaultPrompt": [
-      "$setup-game-designer-cli",
-      "$create-game-server",
-      "$connect-js-sdk"
+      "$gd-setup-cli",
+      "$gd-create-server",
+      "$gd-connect-sdk"
     ],
     "screenshots": []
   }

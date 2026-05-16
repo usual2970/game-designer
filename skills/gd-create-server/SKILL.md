@@ -1,10 +1,10 @@
 ---
-name: create-game-server
+name: gd-create-server
 description: Scaffold or attach the Go server template for a game backend
 trigger: user asks to create a game backend, add server support, or set up game-designer backend
 ---
 
-# create-game-server
+# gd-create-server
 
 Create or attach the Go server template for a slot-machine H5 game backend.
 

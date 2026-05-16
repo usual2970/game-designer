@@ -6,19 +6,19 @@ Step-by-step instructions for a code agent to connect and deploy a slot machine 
 
 The golden path has six steps, each mapped to a plugin skill:
 
-0. **setup-game-designer-cli** — Build and verify the deploy CLI (first use only)
-1. **create-game-server** — Scaffold the Go server
-2. **connect-js-sdk** — Wire the TypeScript SDK into the H5 game
-3. **prepare-deploy** — Run preflight checks
-4. **deploy-game-server** — Deploy via CLI
-5. **debug-server-integration** — (if needed) Triage failures
+0. **gd-setup-cli** — Build and verify the deploy CLI (first use only)
+1. **gd-create-server** — Scaffold the Go server
+2. **gd-connect-sdk** — Wire the TypeScript SDK into the H5 game
+3. **gd-prepare-deploy** — Run preflight checks
+4. **gd-deploy-server** — Deploy via CLI
+5. **gd-debug-integration** — (if needed) Triage failures
 
 Before starting, the agent must have the Game Designer plugin installed. See [Plugin Installation](plugin-installation.md) for setup instructions.
 
 ## Step 0: Set Up the Deploy CLI
 
 ```
-Skill: setup-game-designer-cli
+Skill: gd-setup-cli
 ```
 
 Build the Go deploy CLI from source. This step is required on first use and when the CLI source changes.
@@ -34,7 +34,7 @@ Expected: binary builds and reports its version without errors.
 ## Step 1: Create the Server
 
 ```
-Skill: create-game-server
+Skill: gd-create-server
 ```
 
 The Go server template provides session, profile, slot config, balance, spin, spin history, and slot leaderboard capabilities behind the OpenAPI contract. The server manages virtual credits for slot machine gameplay.
@@ -47,7 +47,7 @@ The Go server template provides session, profile, slot config, balance, spin, sp
 ## Step 2: Connect the SDK
 
 ```
-Skill: connect-js-sdk
+Skill: gd-connect-sdk
 ```
 
 The TypeScript SDK wraps all API calls with typed methods.
@@ -68,7 +68,7 @@ Key integration points:
 ## Step 3: Prepare for Deploy
 
 ```
-Skill: prepare-deploy
+Skill: gd-prepare-deploy
 ```
 
 Run pre-deploy checks to verify readiness.
@@ -87,7 +87,7 @@ If any check fails, fix the issue before proceeding.
 ## Step 4: Deploy
 
 ```
-Skill: deploy-game-server
+Skill: gd-deploy-server
 ```
 
 Deploy using the CLI:
@@ -112,7 +112,7 @@ Expected output:
 
 ## If Something Fails
 
-Use `debug-server-integration` to triage:
+Use `gd-debug-integration` to triage:
 
 | Symptom | Category | Fix |
 |---------|----------|-----|
@@ -123,4 +123,4 @@ Use `debug-server-integration` to triage:
 | 500 responses | Server error | Check server logs, run tests |
 | CLI exits non-zero | Deploy failure | Check preflight, provider config |
 | Verification fails | Integration | Run debug skill, check endpoint |
-| CLI binary missing | Setup incomplete | Run `setup-game-designer-cli` first |
+| CLI binary missing | Setup incomplete | Run `gd-setup-cli` first |
