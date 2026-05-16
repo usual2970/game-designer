@@ -4,13 +4,31 @@ Step-by-step instructions for a code agent to connect and deploy an activity-sty
 
 ## Overview
 
-The golden path has five steps, each mapped to a plugin skill:
+The golden path has six steps, each mapped to a plugin skill:
 
+0. **setup-game-designer-cli** — Build and verify the deploy CLI (first use only)
 1. **create-game-server** — Scaffold the Go server
 2. **connect-js-sdk** — Wire the TypeScript SDK into the H5 game
 3. **prepare-deploy** — Run preflight checks
 4. **deploy-game-server** — Deploy via CLI
 5. **debug-server-integration** — (if needed) Triage failures
+
+Before starting, the agent must have the Game Designer plugin installed. See [Plugin Installation](plugin-installation.md) for setup instructions.
+
+## Step 0: Set Up the Deploy CLI
+
+```
+Skill: setup-game-designer-cli
+```
+
+Build the Go deploy CLI from source. This step is required on first use and when the CLI source changes.
+
+```bash
+cd cli && GOWORK=off go build -o game-designer ./cmd/game-designer
+./cli/game-designer version
+```
+
+Expected: binary builds and reports its version without errors.
 
 ## Step 1: Create the Server
 
@@ -101,3 +119,4 @@ Use `debug-server-integration` to triage:
 | 500 responses | Server error | Check server logs, run tests |
 | CLI exits non-zero | Deploy failure | Check preflight, provider config |
 | Verification fails | Integration | Run debug skill, check endpoint |
+| CLI binary missing | Setup incomplete | Run `setup-game-designer-cli` first |
