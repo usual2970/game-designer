@@ -6,7 +6,7 @@ trigger: user asks to create a game backend, add server support, or set up game-
 
 # create-game-server
 
-Create or attach the Go server template for an activity-style H5 game backend.
+Create or attach the Go server template for a slot-machine H5 game backend.
 
 ## Prerequisites
 
@@ -26,7 +26,8 @@ Create or attach the Go server template for an activity-style H5 game backend.
 3. Verify the template builds: `cd server-template && GOWORK=off go build ./...`
 4. Run the server locally: `cd server-template && GOWORK=off go run ./cmd/server`
 5. Verify the server responds on `:8080` by sending `POST /api/v1/session`
-6. Report the result
+6. Verify slot endpoints: `GET /api/v1/slot/config` and `GET /api/v1/balance`
+7. Report the result
 
 ## Read Scope
 
@@ -43,15 +44,20 @@ Create or attach the Go server template for an activity-style H5 game backend.
 1. `go build` succeeds in the server directory
 2. Server starts on port 8080
 3. `POST /api/v1/session` returns 200 with a valid session response
+4. `GET /api/v1/slot/config` returns slot configuration with reels, paylines, and wager limits
+5. `GET /api/v1/balance` returns virtual credit balance
 
 ## Success Output
 
 ```
-Game server created and verified.
+Slot machine game server created and verified.
 - Server path: server-template/
 - Build: OK
 - Local endpoint: http://localhost:8080
 - Session endpoint: POST /api/v1/session
+- Slot config: GET /api/v1/slot/config
+- Balance: GET /api/v1/balance
+- Spin: POST /api/v1/spin
 ```
 
 ## Failure Output

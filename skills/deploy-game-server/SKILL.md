@@ -6,7 +6,7 @@ trigger: user asks to deploy the game server, push to PaaS, release the backend
 
 # deploy-game-server
 
-Deploy the game server to the team PaaS using the CLI.
+Deploy the slot machine game server to the team PaaS using the CLI.
 
 ## Prerequisites
 
@@ -52,6 +52,7 @@ Deploy the game server to the team PaaS using the CLI.
 3. JSON output contains `"success": true`
 4. Deployed URL is accessible
 5. Health check passes
+6. Deployed slot spin loop verification passes
 
 ## Success Output
 
@@ -60,7 +61,7 @@ Deployment successful.
 - URL: https://<app-name>.fake.local
 - Version: v0.1.0
 - Health: OK
-- Deployed verification: PASS
+- Deployed verification: PASS (slot spin loop verified)
 ```
 
 ## Failure Output

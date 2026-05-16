@@ -6,7 +6,7 @@ trigger: user asks to prepare deploy, run preflight, check deployment readiness
 
 # prepare-deploy
 
-Run pre-deploy checks and prepare the game server for deployment.
+Run pre-deploy checks and prepare the slot machine game server for deployment.
 
 ## Prerequisites
 
@@ -55,7 +55,7 @@ Run pre-deploy checks and prepare the game server for deployment.
 4. SDK builds: `cd sdk-js && npm run build`
 5. SDK tests pass: `cd sdk-js && npm test`
 6. CLI preflight passes
-7. Local verification passes
+7. Local verification passes (includes slot spin loop check)
 
 ## Success Output
 
@@ -77,5 +77,5 @@ Ready to deploy.
 - Server build failure: Report Go compiler errors
 - Test failure: Report which tests failed and what they expect
 - SDK build failure: Report TypeScript errors
-- Local verification failure: Report which endpoint checks failed
+- Local verification failure: Report which slot endpoint checks failed
 - Not ready: List specific issues that must be resolved before deploy

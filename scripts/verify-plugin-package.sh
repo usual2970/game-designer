@@ -181,6 +181,29 @@ text = open('$ROOT_DIR/docs/integration/plugin-installation.md').read().lower().
 assert 'does not compile' in text.lower() or 'does not build' in text.lower()
 "
 
+# 8. Slot machine theme consistency
+echo ""
+echo "8. Slot machine theme"
+check "Skills do not reference stale activity-game example" python3 -c "
+from pathlib import Path
+skills_dir = Path('$ROOT_DIR/skills')
+bad = []
+for skill_file in skills_dir.glob('*/SKILL.md'):
+    text = skill_file.read_text()
+    if 'basic-activity-game' in text:
+        bad.append(f'{skill_file}:basic-activity-game')
+assert not bad, ', '.join(bad)
+"
+check "Skills reference slot machine concepts" python3 -c "
+from pathlib import Path
+skills_dir = Path('$ROOT_DIR/skills')
+connect_skill = skills_dir / 'connect-js-sdk' / 'SKILL.md'
+text = connect_skill.read_text()
+assert 'spin' in text.lower() and 'balance' in text.lower(), 'connect-js-sdk skill must reference spin and balance'
+"
+check "Example h5-slot-machine exists" test -d "$ROOT_DIR/examples/h5-slot-machine"
+check "Old example h5-activity-game absent" test ! -d "$ROOT_DIR/examples/h5-activity-game"
+
 # Summary
 echo ""
 echo "=== Results ==="

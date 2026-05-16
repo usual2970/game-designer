@@ -6,7 +6,7 @@ trigger: user asks to connect SDK, add game-designer SDK, integrate backend SDK 
 
 # connect-js-sdk
 
-Connect the Game Designer TypeScript SDK to an H5 game project.
+Connect the Game Designer TypeScript SDK to an H5 slot machine game project.
 
 ## Prerequisites
 
@@ -26,13 +26,13 @@ Connect the Game Designer TypeScript SDK to an H5 game project.
 2. Install the SDK: reference `sdk-js/` or install from the package
 3. Import the SDK client: `import { GameDesignerClient } from "@game-designer/sdk"`
 4. Add SDK initialization code to the H5 game entry point
-5. Wire up the golden path calls using patterns from `sdk-js/examples/basic-activity-game.ts`
+5. Wire up the slot machine golden path calls using patterns from `sdk-js/examples/basic-slot-machine.ts`
 6. Run the SDK tests to verify: `cd sdk-js && npm test`
 
 ## Read Scope
 
 - `sdk-js/` — TypeScript SDK source and examples
-- `sdk-js/examples/basic-activity-game.ts` — golden path integration pattern
+- `sdk-js/examples/basic-slot-machine.ts` — golden path integration pattern
 - `contracts/game-server.openapi.yaml` — API contract for type reference
 
 ## Write Scope
@@ -53,14 +53,24 @@ const session = await client.createOrResumeSession({
   nickname: currentUser.name,
 });
 
-// Save progress
-await client.saveGameState({ data: currentProgress, checkpoint: "level-3" });
+// Get slot configuration
+const config = await client.getSlotConfig();
 
-// Submit score
-const result = await client.submitScore({ score: finalScore });
+// Check balance
+const balance = await client.getBalance();
 
-// Read leaderboard
-const leaderboard = await client.getLeaderboard({ limit: 10 });
+// Spin with virtual credit wager
+const result = await client.spin({ wager: 10 });
+// result.reels — symbol grid
+// result.paylineWins — winning paylines
+// result.totalPayout — total payout in credits
+// result.balance — updated virtual credit balance
+
+// Spin history
+const history = await client.getSpinHistory({ limit: 20 });
+
+// Slot leaderboard
+const leaderboard = await client.getSlotLeaderboard({ limit: 10 });
 ```
 
 ## Checks
@@ -68,17 +78,19 @@ const leaderboard = await client.getLeaderboard({ limit: 10 });
 1. SDK builds without errors: `cd sdk-js && npm run build`
 2. SDK tests pass: `cd sdk-js && npm test`
 3. No hand-written HTTP calls — all calls go through the SDK client
-4. Error handling uses `ApiError` class with structured codes
+4. Error handling uses `ApiError` class with structured codes including `INSUFFICIENT_BALANCE`
 
 ## Success Output
 
 ```
-SDK connected to H5 game.
+SDK connected to H5 slot game.
 - SDK import: OK
 - Session flow: wired
-- Game state: wired
-- Score submission: wired
-- Leaderboard: wired
+- Slot config: wired
+- Balance: wired
+- Spin: wired
+- Spin history: wired
+- Slot leaderboard: wired
 - Error handling: using ApiError
 ```
 
@@ -86,5 +98,5 @@ SDK connected to H5 game.
 
 - Build errors: Check TypeScript version compatibility (5.4+) and import paths
 - Missing fetch: The SDK requires a browser environment with native fetch
-- Type mismatch: Ensure SDK types align with game data shapes
+- Type mismatch: Ensure SDK types align with the slot machine API contract
 - SDK not found: Verify `sdk-js/` exists at the plugin root or install the package
