@@ -2,6 +2,20 @@
 
 A contract-first Go backend template, TypeScript H5 SDK, Go deploy CLI, and agent-facing plugin skills that let a code agent connect and deploy an activity-style H5 game backend.
 
+## Install as a Code Agent Plugin
+
+This repository is an installable plugin for Claude Code and Codex. Install from the repository root to get all six skills plus bundled assets.
+
+```bash
+# Claude Code
+claude plugin install .
+
+# Validate the package
+./scripts/verify-plugin-package.sh
+```
+
+See [Plugin Installation](docs/integration/plugin-installation.md) for Claude Code and Codex guides, prerequisites, and troubleshooting.
+
 ## Quick Start
 
 ### 1. Start the server
@@ -91,6 +105,7 @@ cd examples/h5-activity-game && npm test
 
 ## Golden Path
 
+0. **Setup CLI** — Use `setup-game-designer-cli` skill to build the deploy CLI (first use only)
 1. **Create** — Use `create-game-server` skill to scaffold the Go backend
 2. **Connect** — Use `connect-js-sdk` skill to wire the SDK into the H5 game
 3. **Verify** — Run `./scripts/verify-local.sh`
@@ -109,6 +124,8 @@ cd examples/h5-activity-game && npm test
 
 ## Documentation
 
+- [Plugin installation](docs/integration/plugin-installation.md)
+- [Agent golden path](docs/integration/agent-golden-path.md)
 - [Contract-first workflow](docs/integration/contract-first-workflow.md)
 - [Local verification](docs/integration/local-verification.md)
 - [Agent golden path](docs/integration/agent-golden-path.md)

@@ -1,6 +1,14 @@
 # Local Verification
 
-Run the local verification script before deploying to PaaS.
+Run the local verification script before deploying to PaaS. For plugin package checks, use `./scripts/verify-plugin-package.sh` instead.
+
+## Related Verification Scripts
+
+| Script | Purpose |
+|--------|---------|
+| `./scripts/verify-plugin-package.sh` | Validate plugin manifests, skills, and bundled assets |
+| `./scripts/verify-local.sh` | Build, test, and activity loop against local server |
+| `./scripts/verify-deployed.sh <url>` | Activity loop against deployed server |
 
 ## Quick Run
 
