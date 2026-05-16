@@ -11,28 +11,46 @@ Install the Game Designer plugin for Claude Code or Codex to scaffold H5 game ba
 
 ## Claude Code
 
-### Local Install
+### Option A: Quick Dev Testing (Recommended)
+
+Load the plugin directly from disk for the current session. No marketplace setup needed.
 
 ```bash
 # From the repository root
-claude plugin install .
+claude --plugin-dir .
 ```
 
-Or add as a marketplace:
+Inside the session, reload after changes with `/reload-plugins`.
+
+### Option B: Persistent Marketplace Install
+
+Install the plugin so it persists across sessions.
 
 ```bash
-claude plugin marketplace add .
-claude plugin install game-designer
+# Add this repo as a local marketplace (note: ./ not .)
+claude plugin marketplace add ./
+
+# Install the plugin from the marketplace
+claude plugin install game-designer@game-designer-marketplace
+
+# Reload plugins in session
+# /reload-plugins
+```
+
+If the marketplace install shows 0 skills (known bug), use a symlink workaround:
+
+```bash
+mkdir -p ~/.claude/plugins/marketplaces
+ln -sfn "$(pwd)" ~/.claude/plugins/marketplaces/game-designer-marketplace
+claude plugin marketplace add ./
+claude plugin install game-designer@game-designer-marketplace
 ```
 
 ### Verify Installation
 
 ```bash
-# List installed skills
-claude plugin skills
-
-# Build the deploy CLI (first use)
 # In a Claude Code session, ask: "set up the game-designer deploy CLI"
+# Or check skills are visible by invoking any skill
 
 # Validate the plugin package
 ./scripts/verify-plugin-package.sh
@@ -63,16 +81,19 @@ When the plugin content (skills, manifests, docs) or the CLI source changes:
 
 **1. Update the plugin**
 
+If using `--plugin-dir`, just restart the session or run `/reload-plugins`.
+
+If using marketplace install:
+
 ```bash
 # Pull latest changes
 git pull
 
 # Reinstall to refresh the Claude Code cache
-claude plugin install .
+claude plugin remove game-designer@game-designer-marketplace
+claude plugin install game-designer@game-designer-marketplace
 
-# If still showing old version, remove and reinstall
-claude plugin remove game-designer
-claude plugin install .
+# Then in session: /reload-plugins
 ```
 
 **2. Rebuild the CLI**
@@ -111,7 +132,8 @@ cd cli && GOWORK=off go build -o game-designer ./cmd/game-designer
 |---------|-------|-----|
 | Skills not visible after install | Installed `plugin/` instead of repo root | Reinstall from the repository root directory |
 | Missing manifest error | `.claude-plugin/plugin.json` not found | Ensure you installed from the repo root |
-| Stale cached plugin | Claude Code cached an older version | Remove and reinstall the plugin |
+| Stale cached plugin | Claude Code cached an older version | `/reload-plugins` in session, or remove and reinstall |
+| Marketplace install shows 0 skills | Known bug with local marketplace copy | Use the symlink workaround above |
 | CLI build fails | Go not installed or wrong version | Install Go 1.24+ and verify with `go version` |
 | SDK build fails | Node.js not installed or wrong version | Install Node.js 18+ and verify with `node --version` |
 | Skills reference missing files | Installed from a subdirectory | Reinstall from the repository root |

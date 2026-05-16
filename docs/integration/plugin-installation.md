@@ -21,23 +21,39 @@ game-designer-backend/           <- Install from here (the plugin root)
 
 ## Claude Code Installation
 
-### Local Development
+### Quick Dev Testing (Recommended)
 
-Install directly from a cloned repository:
+Load the plugin directly from disk for the current session. No marketplace setup needed:
 
 ```bash
 git clone <repo-url> game-designer-backend
 cd game-designer-backend
-claude plugin install .
+claude --plugin-dir .
 ```
 
-### Marketplace Install
+Inside the session, reload after changes with `/reload-plugins`.
 
-Add the repository as a marketplace source and install:
+### Persistent Marketplace Install
+
+Install the plugin so it persists across sessions:
 
 ```bash
-claude plugin marketplace add .
-claude plugin install game-designer
+cd game-designer-backend
+
+# Add this repo as a local marketplace (note: ./ not bare .)
+claude plugin marketplace add ./
+
+# Install the plugin
+claude plugin install game-designer@game-designer-marketplace
+```
+
+If the marketplace install shows 0 skills (known bug), use a symlink workaround:
+
+```bash
+mkdir -p ~/.claude/plugins/marketplaces
+ln -sfn "$(pwd)" ~/.claude/plugins/marketplaces/game-designer-marketplace
+claude plugin marketplace add ./
+claude plugin install game-designer@game-designer-marketplace
 ```
 
 ### GitHub Repository Install
@@ -46,7 +62,7 @@ If the repository is hosted on GitHub:
 
 ```bash
 claude plugin marketplace add <owner>/<repo>
-claude plugin install game-designer
+claude plugin install game-designer@game-designer-marketplace
 ```
 
 ### Post-Install Verification
@@ -115,7 +131,13 @@ Fix: reinstall from the repository root.
 
 Claude Code caches installed plugins. After updating the repository, the cached copy may be stale.
 
-Fix: remove and reinstall the plugin.
+Fix: run `/reload-plugins` in session, or remove and reinstall.
+
+### Marketplace install shows 0 skills
+
+Known bug with local marketplace copy (the plugin directory is copied but internal paths don't resolve).
+
+Fix: use the symlink workaround documented in the marketplace install section above.
 
 ### CLI build fails
 

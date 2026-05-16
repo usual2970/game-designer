@@ -7,8 +7,8 @@ A contract-first Go backend template, TypeScript H5 SDK, Go deploy CLI, and agen
 This repository is an installable plugin for Claude Code and Codex. Install from the repository root to get all six skills plus bundled assets.
 
 ```bash
-# Claude Code
-claude plugin install .
+# Claude Code (quick dev testing)
+claude --plugin-dir .
 
 # Validate the package
 ./scripts/verify-plugin-package.sh
