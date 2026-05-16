@@ -1,6 +1,6 @@
 # Agent Golden Path
 
-Step-by-step instructions for a code agent to connect and deploy an activity-style H5 game backend.
+Step-by-step instructions for a code agent to connect and deploy a slot machine H5 game backend.
 
 ## Overview
 
@@ -37,7 +37,7 @@ Expected: binary builds and reports its version without errors.
 Skill: create-game-server
 ```
 
-The Go server template provides session, profile, game state, score, and leaderboard capabilities behind the OpenAPI contract.
+The Go server template provides session, profile, slot config, balance, spin, spin history, and slot leaderboard capabilities behind the OpenAPI contract. The server manages virtual credits for slot machine gameplay.
 
 - Copy `server-template/` into the project
 - Build: `cd server-template && GOWORK=off go build ./...`
@@ -55,14 +55,15 @@ The TypeScript SDK wraps all API calls with typed methods.
 - Reference `sdk-js/` as a dependency
 - Import: `import { GameDesignerClient } from "@game-designer/sdk"`
 - Initialize: `new GameDesignerClient({ baseUrl: "http://localhost:8080" })`
-- Follow the pattern in `sdk-js/examples/basic-activity-game.ts`
+- Follow the pattern in `sdk-js/examples/basic-slot-machine.ts`
 
 Key integration points:
 - `createOrResumeSession({ playerId })` — call on game start
-- `saveGameState({ data, checkpoint })` — call during gameplay
-- `getGameState()` — call on resume (returns null if no save)
-- `submitScore({ score })` — call when round ends
-- `getLeaderboard({ limit })` — call to show rankings
+- `getSlotConfig()` — call to retrieve reel configuration, symbols, and paylines
+- `getBalance()` — call to check player's virtual credit balance
+- `spin({ wager })` — call when player spins (deducts wager, returns result and payout)
+- `getSpinHistory({ limit })` — call to show recent spin results
+- `getSlotLeaderboard({ limit })` — call to show top payouts
 
 ## Step 3: Prepare for Deploy
 
@@ -117,6 +118,8 @@ Use `debug-server-integration` to triage:
 |---------|----------|-----|
 | SDK type errors | Contract mismatch | Validate contract, update SDK |
 | 400/401 responses | SDK integration | Check session token, request format |
+| INSUFFICIENT_BALANCE | Wager/balance | Check balance before spin, validate wager amount |
+| Payout mismatch | Balance/payout | Verify payout table matches slot config, check multiplier logic |
 | 500 responses | Server error | Check server logs, run tests |
 | CLI exits non-zero | Deploy failure | Check preflight, provider config |
 | Verification fails | Integration | Run debug skill, check endpoint |

@@ -1,6 +1,6 @@
 # SDK Usage Guide
 
-How to use the `@game-designer/sdk` TypeScript SDK in an H5 game.
+How to use the `@game-designer/sdk` TypeScript SDK in an H5 slot machine game.
 
 ## Installation
 
@@ -56,42 +56,69 @@ const updated = await client.updatePlayerProfile({
 });
 ```
 
-## Game State
+## Slot Config
 
 ```typescript
-// Save progress
-await client.saveGameState({
-  data: {
-    level: 5,
-    coins: 200,
-    items: ["sword", "shield"],
-  },
-  checkpoint: "level-5",
-});
+// Get slot machine configuration
+const config = await client.getSlotConfig();
+console.log(`Reels: ${config.reels.length}`);
+console.log(`Paylines: ${config.paylines.length}`);
+console.log(`Min wager: ${config.minWager}, Max wager: ${config.maxWager}`);
 
-// Resume progress (returns null if no saved state)
-const state = await client.getGameState();
-if (state) {
-  console.log(`Resuming from ${state.checkpoint}`);
-  console.log(`Level: ${state.data.level}`);
+// Use config to render reels, symbols, and payline indicators
+for (const reel of config.reels) {
+  console.log(`Reel symbols: ${reel.symbols.join(", ")}`);
 }
 ```
 
-## Score and Leaderboard
+## Balance
 
 ```typescript
-// Submit a score
-const result = await client.submitScore({
-  score: 1500,
-  metadata: { level: 5, duration: 120 },
-});
-console.log(`Rank: #${result.rank}, Best: ${result.bestScore}`);
-console.log(`New personal best: ${result.isNewBest}`);
+// Check virtual credit balance
+const balance = await client.getBalance();
+console.log(`Current balance: ${balance.credits} credits`);
+```
 
+## Spin
+
+```typescript
+// Place a spin with a wager amount
+const spinResult = await client.spin({
+  wager: 100,
+});
+
+console.log(`Reel stops: ${spinResult.reelStops.join(", ")}`);
+console.log(`Winning paylines: ${spinResult.winningPaylines.length}`);
+console.log(`Payout: ${spinResult.payout} credits`);
+console.log(`New balance: ${spinResult.balance} credits`);
+
+// Check if the spin was a win
+if (spinResult.payout > 0) {
+  for (const payline of spinResult.winningPaylines) {
+    console.log(`Payline ${payline.paylineId}: ${payline.symbol} x${payline.count} = ${payline.payout}`);
+  }
+}
+```
+
+## Spin History
+
+```typescript
+// Get recent spin results
+const history = await client.getSpinHistory({ limit: 10, offset: 0 });
+for (const entry of history.spins) {
+  console.log(
+    `Spin #${entry.id}: wager=${entry.wager}, payout=${entry.payout}, balance=${entry.balanceAfter}`
+  );
+}
+```
+
+## Slot Leaderboard
+
+```typescript
 // Read leaderboard
-const leaderboard = await client.getLeaderboard({ limit: 10, offset: 0 });
+const leaderboard = await client.getSlotLeaderboard({ limit: 10, offset: 0 });
 for (const entry of leaderboard.entries) {
-  console.log(`#${entry.rank} ${entry.nickname}: ${entry.score}`);
+  console.log(`#${entry.rank} ${entry.nickname}: ${entry.bestPayout} credits (biggest win)`);
 }
 ```
 
@@ -101,12 +128,15 @@ for (const entry of leaderboard.entries) {
 import { ApiError } from "@game-designer/sdk";
 
 try {
-  await client.submitScore({ score: 1500 });
+  await client.spin({ wager: 100 });
 } catch (error) {
   if (error instanceof ApiError) {
     switch (error.code) {
       case "INVALID_PARAMETERS":
-        // Fix request and retry
+        // Fix request and retry (e.g. invalid wager amount)
+        break;
+      case "INSUFFICIENT_BALANCE":
+        // Not enough credits for the wager — show balance to player
         break;
       case "UNAUTHORIZED":
         // Re-authenticate
@@ -127,6 +157,6 @@ try {
 
 ## Full Example
 
-See `sdk-js/examples/basic-activity-game.ts` for a complete working example.
+See `sdk-js/examples/basic-slot-machine.ts` for a complete working example.
 
-See `examples/h5-activity-game/` for a game integration example.
+See `examples/h5-slot-machine/` for a game integration example.

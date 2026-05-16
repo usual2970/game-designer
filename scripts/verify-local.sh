@@ -87,9 +87,9 @@ if curl -sf -o /dev/null "$SERVER_URL/api/v1/session" 2>/dev/null; then
   echo -e "  ${GREEN}PASS${NC} server reachable at $SERVER_URL"
   ((pass++))
 
-  # Step 9: Activity loop against live server
+  # Step 9: Slot loop against live server
   echo ""
-  echo "9. Activity loop (live server)"
+  echo "9. Slot loop (live server)"
 
   # Create session
   SESSION_RESP=$(curl -sf -X POST "$SERVER_URL/api/v1/session" \
@@ -101,44 +101,54 @@ if curl -sf -o /dev/null "$SERVER_URL/api/v1/session" 2>/dev/null; then
       echo -e "  ${GREEN}PASS${NC} session created"
       ((pass++))
 
-      # Save game state
-      SAVE_RESP=$(curl -sf -X PUT "$SERVER_URL/api/v1/game-state" \
-        -H "Content-Type: application/json" \
-        -H "X-Session-Token: $TOKEN" \
-        -d '{"data":{"level":1,"coins":0},"checkpoint":"start"}')
-      if [ -n "$SAVE_RESP" ]; then
-        echo -e "  ${GREEN}PASS${NC} game state saved"
-        ((pass++))
-      else
-        echo -e "  ${RED}FAIL${NC} game state save"
-        ((fail++))
-        errors+=("game-state-save")
-      fi
-
-      # Load game state
-      LOAD_RESP=$(curl -sf "$SERVER_URL/api/v1/game-state" \
+      # Get slot config
+      CONFIG_RESP=$(curl -sf "$SERVER_URL/api/v1/slot/config" \
         -H "X-Session-Token: $TOKEN")
-      if [ -n "$LOAD_RESP" ]; then
-        echo -e "  ${GREEN}PASS${NC} game state loaded"
+      if echo "$CONFIG_RESP" | grep -q '"reels"'; then
+        echo -e "  ${GREEN}PASS${NC} slot config read"
         ((pass++))
       else
-        echo -e "  ${RED}FAIL${NC} game state load"
+        echo -e "  ${RED}FAIL${NC} slot config"
         ((fail++))
-        errors+=("game-state-load")
+        errors+=("slot-config")
       fi
 
-      # Submit score
-      SCORE_RESP=$(curl -sf -X POST "$SERVER_URL/api/v1/scores" \
-        -H "Content-Type: application/json" \
-        -H "X-Session-Token: $TOKEN" \
-        -d '{"score":100}')
-      if echo "$SCORE_RESP" | grep -q '"accepted":true'; then
-        echo -e "  ${GREEN}PASS${NC} score submitted"
+      # Get balance
+      BAL_RESP=$(curl -sf "$SERVER_URL/api/v1/balance" \
+        -H "X-Session-Token: $TOKEN")
+      if echo "$BAL_RESP" | grep -q '"balance"'; then
+        echo -e "  ${GREEN}PASS${NC} balance read"
         ((pass++))
       else
-        echo -e "  ${RED}FAIL${NC} score submission"
+        echo -e "  ${RED}FAIL${NC} balance"
         ((fail++))
-        errors+=("score-submit")
+        errors+=("balance-read")
+      fi
+
+      # Spin
+      SPIN_RESP=$(curl -sf -X POST "$SERVER_URL/api/v1/spin" \
+        -H "Content-Type: application/json" \
+        -H "X-Session-Token: $TOKEN" \
+        -d '{"wager":10}')
+      if echo "$SPIN_RESP" | grep -q '"spinId"'; then
+        echo -e "  ${GREEN}PASS${NC} spin resolved"
+        ((pass++))
+      else
+        echo -e "  ${RED}FAIL${NC} spin"
+        ((fail++))
+        errors+=("spin")
+      fi
+
+      # Read spin history
+      HIST_RESP=$(curl -sf "$SERVER_URL/api/v1/spin/history" \
+        -H "X-Session-Token: $TOKEN")
+      if echo "$HIST_RESP" | grep -q '"entries"'; then
+        echo -e "  ${GREEN}PASS${NC} spin history read"
+        ((pass++))
+      else
+        echo -e "  ${RED}FAIL${NC} spin history"
+        ((fail++))
+        errors+=("spin-history")
       fi
 
       # Read leaderboard
@@ -164,7 +174,7 @@ if curl -sf -o /dev/null "$SERVER_URL/api/v1/session" 2>/dev/null; then
   fi
 else
   echo -e "  ${YELLOW}SKIP${NC} server not running at $SERVER_URL (start with: cd server-template && GOWORK=off go run ./cmd/server)"
-  echo -e "  ${YELLOW}SKIP${NC} activity loop (requires running server)"
+  echo -e "  ${YELLOW}SKIP${NC} slot loop (requires running server)"
 fi
 
 # Summary

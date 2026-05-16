@@ -3,7 +3,7 @@
 #
 # Usage: ./scripts/verify-deployed.sh <deployed_url>
 #
-# Runs health plus activity-loop checks against a deployed backend.
+# Runs health plus slot-loop checks against a deployed backend.
 
 set -euo pipefail
 
@@ -65,53 +65,67 @@ if [ -n "$SESSION_RESP" ] && echo "$SESSION_RESP" | grep -q '"token"'; then
   echo -e "  ${GREEN}PASS${NC} session created"
   ((pass++))
 
-  # Step 3: Save state
+  # Step 3: Slot config
   echo ""
-  echo "3. Game state"
-  SAVE_RESP=$(curl -sf -X PUT "$DEPLOYED_URL/api/v1/game-state" \
-    -H "Content-Type: application/json" \
-    -H "X-Session-Token: $TOKEN" \
-    -d '{"data":{"level":1},"checkpoint":"start"}' --max-time "$TIMEOUT" 2>/dev/null || echo "")
-  if [ -n "$SAVE_RESP" ]; then
-    echo -e "  ${GREEN}PASS${NC} game state saved"
-    ((pass++))
-  else
-    echo -e "  ${RED}FAIL${NC} game state save"
-    ((fail++))
-    errors+=("game-state-save")
-  fi
-
-  # Step 4: Load state
-  LOAD_RESP=$(curl -sf "$DEPLOYED_URL/api/v1/game-state" \
+  echo "3. Slot config"
+  CONFIG_RESP=$(curl -sf "$DEPLOYED_URL/api/v1/slot/config" \
     -H "X-Session-Token: $TOKEN" --max-time "$TIMEOUT" 2>/dev/null || echo "")
-  if [ -n "$LOAD_RESP" ]; then
-    echo -e "  ${GREEN}PASS${NC} game state loaded"
+  if echo "$CONFIG_RESP" | grep -q '"reels"'; then
+    echo -e "  ${GREEN}PASS${NC} slot config read"
     ((pass++))
   else
-    echo -e "  ${RED}FAIL${NC} game state load"
+    echo -e "  ${RED}FAIL${NC} slot config"
     ((fail++))
-    errors+=("game-state-load")
+    errors+=("slot-config")
   fi
 
-  # Step 5: Submit score
+  # Step 4: Balance
   echo ""
-  echo "4. Score submission"
-  SCORE_RESP=$(curl -sf -X POST "$DEPLOYED_URL/api/v1/scores" \
+  echo "4. Balance"
+  BAL_RESP=$(curl -sf "$DEPLOYED_URL/api/v1/balance" \
+    -H "X-Session-Token: $TOKEN" --max-time "$TIMEOUT" 2>/dev/null || echo "")
+  if echo "$BAL_RESP" | grep -q '"balance"'; then
+    echo -e "  ${GREEN}PASS${NC} balance read"
+    ((pass++))
+  else
+    echo -e "  ${RED}FAIL${NC} balance read"
+    ((fail++))
+    errors+=("balance-read")
+  fi
+
+  # Step 5: Spin
+  echo ""
+  echo "5. Spin"
+  SPIN_RESP=$(curl -sf -X POST "$DEPLOYED_URL/api/v1/spin" \
     -H "Content-Type: application/json" \
     -H "X-Session-Token: $TOKEN" \
-    -d '{"score":100}' --max-time "$TIMEOUT" 2>/dev/null || echo "")
-  if echo "$SCORE_RESP" | grep -q '"accepted":true'; then
-    echo -e "  ${GREEN}PASS${NC} score submitted"
+    -d '{"wager":10}' --max-time "$TIMEOUT" 2>/dev/null || echo "")
+  if echo "$SPIN_RESP" | grep -q '"spinId"'; then
+    echo -e "  ${GREEN}PASS${NC} spin resolved"
     ((pass++))
   else
-    echo -e "  ${RED}FAIL${NC} score submission"
+    echo -e "  ${RED}FAIL${NC} spin"
     ((fail++))
-    errors+=("score-submit")
+    errors+=("spin")
   fi
 
-  # Step 6: Leaderboard
+  # Step 6: Spin history
   echo ""
-  echo "5. Leaderboard"
+  echo "6. Spin history"
+  HIST_RESP=$(curl -sf "$DEPLOYED_URL/api/v1/spin/history" \
+    -H "X-Session-Token: $TOKEN" --max-time "$TIMEOUT" 2>/dev/null || echo "")
+  if echo "$HIST_RESP" | grep -q '"entries"'; then
+    echo -e "  ${GREEN}PASS${NC} spin history read"
+    ((pass++))
+  else
+    echo -e "  ${RED}FAIL${NC} spin history"
+    ((fail++))
+    errors+=("spin-history")
+  fi
+
+  # Step 7: Leaderboard
+  echo ""
+  echo "7. Leaderboard"
   LB_RESP=$(curl -sf "$DEPLOYED_URL/api/v1/leaderboard" \
     -H "X-Session-Token: $TOKEN" --max-time "$TIMEOUT" 2>/dev/null || echo "")
   if echo "$LB_RESP" | grep -q '"entries"'; then

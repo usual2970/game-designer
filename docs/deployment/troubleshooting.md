@@ -36,6 +36,52 @@ catch (error) {
 }
 ```
 
+## Invalid Wager
+
+**Symptoms:** Spin returns 400 with `INVALID_PARAMETERS`, wager rejected.
+
+**Common causes:**
+- Wager amount below `minWager` from slot config
+- Wager amount above `maxWager` from slot config
+- Wager is not a positive integer
+- Wager amount exceeds player balance
+
+**Fix:**
+1. Call `getSlotConfig()` to retrieve valid wager range
+2. Call `getBalance()` to confirm sufficient credits
+3. Clamp the wager between `minWager` and `maxWager`
+4. Disable spin button when balance is zero
+
+## Insufficient Balance
+
+**Symptoms:** Spin returns 400 with `INSUFFICIENT_BALANCE`, player cannot spin.
+
+**Common causes:**
+- Player has exhausted all virtual credits
+- Previous spin deducted more credits than expected
+- Balance not refreshed after a losing spin
+
+**Fix:**
+1. Call `getBalance()` before each spin to display current credits
+2. Show a "no credits" state when balance is below `minWager`
+3. If credits should reset, check the server-side balance initialization logic
+4. Verify the spin endpoint correctly deducts the wager and adds payouts
+
+## Payout Mismatch
+
+**Symptoms:** Payout amount differs from expected value based on payline symbols, balance change does not match wager minus payout.
+
+**Common causes:**
+- Payline calculation does not match the slot config payline definitions
+- Symbol multiplier table is out of sync between client and server
+- Client displays wrong payout due to stale slot config cache
+
+**Fix:**
+1. Call `getSlotConfig()` to refresh the payline and symbol definitions
+2. Cross-check the server payout calculation with the config multipliers
+3. Verify the balance after spin equals `previousBalance - wager + payout`
+4. Check server logs for the spin result details and payline evaluation
+
 ## Server Error
 
 **Symptoms:** 500 responses, unexpected JSON, missing endpoints.

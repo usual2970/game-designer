@@ -7,8 +7,8 @@ Run the local verification script before deploying to PaaS. For plugin package c
 | Script | Purpose |
 |--------|---------|
 | `./scripts/verify-plugin-package.sh` | Validate plugin manifests, skills, and bundled assets |
-| `./scripts/verify-local.sh` | Build, test, and activity loop against local server |
-| `./scripts/verify-deployed.sh <url>` | Activity loop against deployed server |
+| `./scripts/verify-local.sh` | Build, test, and slot loop against local server |
+| `./scripts/verify-deployed.sh <url>` | Slot loop against deployed server |
 
 ## Quick Run
 
@@ -36,7 +36,7 @@ With a custom server URL:
 6. **SDK tests** — SDK test suite passes
 7. **CLI preflight** — Deploy CLI preflight checks pass
 8. **Server connectivity** — Server is reachable (if running)
-9. **Activity loop** — Full golden path through live server (if running)
+9. **Slot loop** — Full golden path through live server: get slot config, get balance, spin, get spin history, get slot leaderboard (if running)
 
 ## Output
 
@@ -52,7 +52,7 @@ On failure:
 
 ## Skipping Live Checks
 
-The activity loop checks (steps 7-8) are skipped if the server is not running. This is normal when running CI without a server — the build, test, and contract checks still provide meaningful coverage.
+The slot loop checks (steps 7-8) are skipped if the server is not running. This is normal when running CI without a server — the build, test, and contract checks still provide meaningful coverage.
 
 ## Troubleshooting
 

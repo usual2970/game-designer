@@ -1,6 +1,6 @@
-# Game Designer Server Plugin MVP
+# Game Designer Server Plugin
 
-A contract-first Go backend template, TypeScript H5 SDK, Go deploy CLI, and agent-facing plugin skills that let a code agent connect and deploy an activity-style H5 game backend.
+A contract-first Go backend template, TypeScript H5 SDK, Go deploy CLI, and agent-facing plugin skills that let a code agent connect and deploy a slot-machine H5 game backend with virtual credits and server-authoritative spin resolution.
 
 ## Install as a Code Agent Plugin
 
@@ -26,7 +26,7 @@ GOWORK=off go run ./cmd/server
 # Server starts on :8080
 ```
 
-### 2. Use the SDK in an H5 game
+### 2. Use the SDK in an H5 slot game
 
 ```typescript
 import { GameDesignerClient } from "@game-designer/sdk";
@@ -39,14 +39,21 @@ const session = await client.createOrResumeSession({
   nickname: "Alice",
 });
 
-// Save progress
-await client.saveGameState({ data: { level: 5 }, checkpoint: "level-5" });
+// Get slot config
+const config = await client.getSlotConfig();
 
-// Submit score
-await client.submitScore({ score: 1500 });
+// Check balance
+const balance = await client.getBalance();
 
-// Read leaderboard
-const leaderboard = await client.getLeaderboard({ limit: 10 });
+// Spin with virtual credits
+const result = await client.spin({ wager: 10 });
+// result.reels, result.paylineWins, result.totalPayout, result.balance
+
+// Spin history
+const history = await client.getSpinHistory({ limit: 20 });
+
+// Slot leaderboard
+const leaderboard = await client.getSlotLeaderboard({ limit: 10 });
 ```
 
 ### 3. Verify locally
@@ -75,11 +82,11 @@ GOWORK=off go run ./cmd/game-designer deploy \
 
 ```
 contracts/          OpenAPI contract (single source of truth)
-server-template/    Go backend template
+server-template/    Go slot machine backend template
 sdk-js/             TypeScript H5 SDK
 cli/                Go deploy CLI
 skills/             Agent-facing plugin skills
-examples/           Example H5 activity game
+examples/           Example H5 slot machine game
 scripts/            Verification scripts
 docs/               Documentation
 ```
@@ -97,7 +104,7 @@ cd sdk-js && npm test
 cd cli && GOWORK=off go test ./... -v
 
 # Example game
-cd examples/h5-activity-game && npm test
+cd examples/h5-slot-machine && npm test
 
 # All checks
 ./scripts/verify-local.sh
@@ -107,7 +114,7 @@ cd examples/h5-activity-game && npm test
 
 0. **Setup CLI** — Use `setup-game-designer-cli` skill to build the deploy CLI (first use only)
 1. **Create** — Use `create-game-server` skill to scaffold the Go backend
-2. **Connect** — Use `connect-js-sdk` skill to wire the SDK into the H5 game
+2. **Connect** — Use `connect-js-sdk` skill to wire the SDK into the H5 slot game
 3. **Verify** — Run `./scripts/verify-local.sh`
 4. **Deploy** — Use `deploy-game-server` skill via the CLI
 5. **Verify deployed** — Run `./scripts/verify-deployed.sh <url>`
@@ -118,9 +125,11 @@ cd examples/h5-activity-game && npm test
 |-----------|-------------|
 | Session | Create or resume player sessions |
 | Profile | Player profile management |
-| Game State | Save and resume game progress |
-| Score | Submit player scores |
-| Leaderboard | Ranked player scores |
+| Slot Config | Reel configuration, paylines, wager limits |
+| Balance | Virtual credit balance |
+| Spin | Server-authoritative spin resolution |
+| Spin History | Past spin outcomes |
+| Leaderboard | Slot leaderboard ranked by highest balance |
 
 ## Documentation
 
