@@ -8,6 +8,11 @@ trigger: user asks to create a game backend, add server support, or set up game-
 
 Create or attach the Go server template for an activity-style H5 game backend.
 
+## Prerequisites
+
+- Go 1.24+ installed and on PATH
+- The plugin installed with `server-template/` and `contracts/` accessible
+
 ## When to Apply
 
 - The user asks to create a game backend or add server-side support to an H5 project
@@ -16,16 +21,22 @@ Create or attach the Go server template for an activity-style H5 game backend.
 
 ## What This Skill Does
 
-1. Copy or reference the Go server template from `server-template/`
-2. Verify the template builds: `cd server-template && GOWORK=off go build ./...`
-3. Run the server locally: `cd server-template && GOWORK=off go run ./cmd/server`
-4. Verify the server responds on `:8080`
-5. Report the result
+1. Locate the server template at `${CLAUDE_PLUGIN_ROOT}/server-template/` (or `server-template/` relative to the plugin root)
+2. Copy or reference the Go server template into the target project
+3. Verify the template builds: `cd server-template && GOWORK=off go build ./...`
+4. Run the server locally: `cd server-template && GOWORK=off go run ./cmd/server`
+5. Verify the server responds on `:8080` by sending `POST /api/v1/session`
+6. Report the result
 
-## Files Changed
+## Read Scope
 
-- May create: `server-template/` (if not present)
-- Reads: `contracts/game-server.openapi.yaml`
+- `server-template/` — Go server template source
+- `contracts/game-server.openapi.yaml` — OpenAPI contract for endpoint verification
+
+## Write Scope
+
+- Target project directory — may create `server-template/` if not present
+- Does not modify `contracts/`, `sdk-js/`, `cli/`, or any skill files
 
 ## Checks
 
@@ -47,4 +58,4 @@ Game server created and verified.
 
 - Build failure: Report the Go compiler error and suggest checking the Go version (1.24+)
 - Port conflict: Suggest using a different port or stopping the existing process
-- Missing go.mod: Ensure the template was copied correctly
+- Missing go.mod: Ensure the template was copied correctly from `${CLAUDE_PLUGIN_ROOT}/server-template/`

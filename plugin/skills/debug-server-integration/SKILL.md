@@ -8,6 +8,12 @@ trigger: user reports integration failure, SDK errors, server errors, deploy iss
 
 Triage and diagnose SDK, server, contract, and deployment integration failures.
 
+## Prerequisites
+
+- Go 1.24+ installed and on PATH
+- Node.js 18+ installed and on PATH
+- Access to the project directory with `server-template/`, `sdk-js/`, `contracts/`, and `cli/`
+
 ## When to Apply
 
 - The user reports an integration error or unexpected behavior
@@ -22,6 +28,18 @@ Triage and diagnose SDK, server, contract, and deployment integration failures.
 1. Identify the failure category
 2. Run targeted diagnostics
 3. Report findings and suggest fixes
+
+## Read Scope
+
+- `contracts/` — OpenAPI contract for validation
+- `server-template/` — Go server source for test diagnostics
+- `sdk-js/` — TypeScript SDK source for test diagnostics
+- `cli/` — Deploy CLI for preflight diagnostics
+- `scripts/` — Verification scripts
+
+## Write Scope
+
+- None — this skill is read-only; it diagnoses but does not modify project files
 
 ## Failure Categories
 
@@ -44,7 +62,7 @@ Compare the OpenAPI schemas with the Go server handler responses.
 - Verify session token is set after `createOrResumeSession`
 - Check request body matches SDK types
 
-**Fix:** Ensure SDK calls follow the golden path pattern from examples.
+**Fix:** Ensure SDK calls follow the golden path pattern from `sdk-js/examples/basic-activity-game.ts`.
 
 ### Category 3: Server Error
 
@@ -99,4 +117,5 @@ Integration issue diagnosed.
 If diagnosis cannot determine root cause:
 - Report all diagnostic results
 - Suggest running all tests: `./scripts/verify-local.sh`
+- Suggest running plugin package validation: `./scripts/verify-plugin-package.sh`
 - Ask the user for specific error messages or logs

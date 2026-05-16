@@ -8,6 +8,12 @@ trigger: user asks to connect SDK, add game-designer SDK, integrate backend SDK 
 
 Connect the Game Designer TypeScript SDK to an H5 game project.
 
+## Prerequisites
+
+- Node.js 18+ installed and on PATH
+- The plugin installed with `sdk-js/` accessible
+- A running game server (from `create-game-server`) or a known server URL
+
 ## When to Apply
 
 - The user asks to add backend/SDK integration to an H5 game
@@ -16,16 +22,23 @@ Connect the Game Designer TypeScript SDK to an H5 game project.
 
 ## What This Skill Does
 
-1. Install the SDK: reference `sdk-js/` or install from the package
-2. Import the SDK client: `import { GameDesignerClient } from "@game-designer/sdk"`
-3. Add SDK initialization code to the H5 game entry point
-4. Wire up the golden path calls using patterns from `sdk-js/examples/basic-activity-game.ts`
-5. Run the SDK tests to verify: `cd sdk-js && npm test`
+1. Locate the SDK source at `${CLAUDE_PLUGIN_ROOT}/sdk-js/` (or `sdk-js/` relative to the plugin root)
+2. Install the SDK: reference `sdk-js/` or install from the package
+3. Import the SDK client: `import { GameDesignerClient } from "@game-designer/sdk"`
+4. Add SDK initialization code to the H5 game entry point
+5. Wire up the golden path calls using patterns from `sdk-js/examples/basic-activity-game.ts`
+6. Run the SDK tests to verify: `cd sdk-js && npm test`
 
-## Files Changed
+## Read Scope
 
-- Modifies: H5 game entry point or integration module
-- Reads: `sdk-js/examples/basic-activity-game.ts`, `contracts/game-server.openapi.yaml`
+- `sdk-js/` — TypeScript SDK source and examples
+- `sdk-js/examples/basic-activity-game.ts` — golden path integration pattern
+- `contracts/game-server.openapi.yaml` — API contract for type reference
+
+## Write Scope
+
+- Target H5 game project only — entry point or integration module
+- Does not modify `sdk-js/`, `server-template/`, `cli/`, or any skill files
 
 ## SDK Integration Pattern
 
@@ -74,3 +87,4 @@ SDK connected to H5 game.
 - Build errors: Check TypeScript version compatibility (5.4+) and import paths
 - Missing fetch: The SDK requires a browser environment with native fetch
 - Type mismatch: Ensure SDK types align with game data shapes
+- SDK not found: Verify `sdk-js/` exists at the plugin root or install the package
