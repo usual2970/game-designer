@@ -1,0 +1,12 @@
+{
+  "name": "game-designer-contracts",
+  "private": true,
+  "description": "Contract validation tools for Game Designer Server API",
+  "scripts": {
+    "validate": "swagger-cli validate game-server.openapi.yaml",
+    "test": "node test/validate-contract.mjs"
+  },
+  "devDependencies": {
+    "@apidevtools/swagger-cli": "^4.0.4"
+  }
+}

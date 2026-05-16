@@ -1,0 +1,419 @@
+openapi: 3.0.3
+info:
+  title: Game Designer Server API
+  description: MVP API contract for activity-style H5 mini-game backends.
+  version: 0.1.0
+  contact:
+    name: Game Designer Team
+
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Local development server
+
+tags:
+  - name: Session
+    description: Player session and authentication
+  - name: Profile
+    description: Player profile management
+  - name: GameState
+    description: Game state persistence and resume
+  - name: Score
+    description: Score submission
+  - name: Leaderboard
+    description: Leaderboard queries
+
+paths:
+  /session:
+    post:
+      operationId: createOrResumeSession
+      tags: [Session]
+      summary: Create a new player session or resume an existing one
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SessionRequest'
+      responses:
+        '200':
+          description: Session created or resumed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionResponse'
+        '400':
+          description: Invalid request parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /profile:
+    get:
+      operationId: getPlayerProfile
+      tags: [Profile]
+      summary: Get the current player profile
+      parameters:
+        - $ref: '#/components/parameters/SessionToken'
+      responses:
+        '200':
+          description: Player profile data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProfileResponse'
+        '401':
+          description: Missing or invalid session token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Player profile not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    put:
+      operationId: updatePlayerProfile
+      tags: [Profile]
+      summary: Update the current player profile
+      parameters:
+        - $ref: '#/components/parameters/SessionToken'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProfileRequest'
+      responses:
+        '200':
+          description: Profile updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProfileResponse'
+        '400':
+          description: Invalid request parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Missing or invalid session token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /game-state:
+    get:
+      operationId: getGameState
+      tags: [GameState]
+      summary: Get the current saved game state
+      parameters:
+        - $ref: '#/components/parameters/SessionToken'
+      responses:
+        '200':
+          description: Current game state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GameStateResponse'
+        '204':
+          description: No saved game state exists for this player
+        '401':
+          description: Missing or invalid session token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    put:
+      operationId: saveGameState
+      tags: [GameState]
+      summary: Save current game state
+      parameters:
+        - $ref: '#/components/parameters/SessionToken'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SaveGameStateRequest'
+      responses:
+        '200':
+          description: Game state saved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GameStateResponse'
+        '400':
+          description: Invalid request parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Missing or invalid session token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /scores:
+    post:
+      operationId: submitScore
+      tags: [Score]
+      summary: Submit a score for the current player
+      parameters:
+        - $ref: '#/components/parameters/SessionToken'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubmitScoreRequest'
+      responses:
+        '200':
+          description: Score accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubmitScoreResponse'
+        '400':
+          description: Invalid request parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Missing or invalid session token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /leaderboard:
+    get:
+      operationId: getLeaderboard
+      tags: [Leaderboard]
+      summary: Get the current leaderboard
+      parameters:
+        - $ref: '#/components/parameters/SessionToken'
+        - name: limit
+          in: query
+          description: Maximum number of entries to return
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+        - name: offset
+          in: query
+          description: Number of entries to skip
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        '200':
+          description: Leaderboard entries
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LeaderboardResponse'
+        '401':
+          description: Missing or invalid session token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  parameters:
+    SessionToken:
+      name: X-Session-Token
+      in: header
+      required: true
+      description: Player session token returned by createOrResumeSession
+      schema:
+        type: string
+        minLength: 1
+
+  schemas:
+    SessionRequest:
+      type: object
+      required: [playerId]
+      properties:
+        playerId:
+          type: string
+          description: External player identifier from the H5 game platform
+          minLength: 1
+          maxLength: 128
+        nickname:
+          type: string
+          description: Optional player display name
+          maxLength: 64
+        avatarUrl:
+          type: string
+          description: Optional player avatar URL
+          maxLength: 512
+
+    SessionResponse:
+      type: object
+      required: [sessionId, token, playerId, isNew]
+      properties:
+        sessionId:
+          type: string
+          description: Unique session identifier
+        token:
+          type: string
+          description: Session token for subsequent API calls
+        playerId:
+          type: string
+          description: Internal player identifier
+        isNew:
+          type: boolean
+          description: Whether this is a new player (true) or a resumed session (false)
+        expiresAt:
+          type: string
+          format: date-time
+          description: Session expiration time
+
+    ProfileResponse:
+      type: object
+      required: [playerId, nickname, createdAt, updatedAt]
+      properties:
+        playerId:
+          type: string
+        nickname:
+          type: string
+        avatarUrl:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    UpdateProfileRequest:
+      type: object
+      properties:
+        nickname:
+          type: string
+          minLength: 1
+          maxLength: 64
+        avatarUrl:
+          type: string
+          maxLength: 512
+
+    SaveGameStateRequest:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: object
+          description: Arbitrary game state data to persist
+          additionalProperties: true
+        checkpoint:
+          type: string
+          description: Named checkpoint or level identifier for this save
+
+    GameStateResponse:
+      type: object
+      required: [data, savedAt]
+      properties:
+        data:
+          type: object
+          additionalProperties: true
+        checkpoint:
+          type: string
+        savedAt:
+          type: string
+          format: date-time
+
+    SubmitScoreRequest:
+      type: object
+      required: [score]
+      properties:
+        score:
+          type: integer
+          description: Player score for this submission
+          minimum: 0
+        metadata:
+          type: object
+          description: Optional metadata about the score submission
+          additionalProperties: true
+
+    SubmitScoreResponse:
+      type: object
+      required: [accepted, rank]
+      properties:
+        accepted:
+          type: boolean
+          description: Whether the score was accepted
+        rank:
+          type: integer
+          description: Player current rank on the leaderboard after submission
+          nullable: true
+        bestScore:
+          type: integer
+          description: Player best score (may differ from submitted score if not highest)
+        isNewBest:
+          type: boolean
+          description: Whether this submission set a new personal best
+
+    LeaderboardEntry:
+      type: object
+      required: [rank, playerId, nickname, score, achievedAt]
+      properties:
+        rank:
+          type: integer
+          description: Leaderboard position (1-based)
+        playerId:
+          type: string
+        nickname:
+          type: string
+        score:
+          type: integer
+        achievedAt:
+          type: string
+          format: date-time
+
+    LeaderboardResponse:
+      type: object
+      required: [entries, total]
+      properties:
+        entries:
+          type: array
+          items:
+            $ref: '#/components/schemas/LeaderboardEntry'
+        total:
+          type: integer
+          description: Total number of leaderboard entries
+
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+          description: Human-readable error message
+        code:
+          type: string
+          description: Machine-readable error code for agent triage
+          enum:
+            - INVALID_PARAMETERS
+            - UNAUTHORIZED
+            - NOT_FOUND
+            - SESSION_EXPIRED
+            - INTERNAL_ERROR
+        details:
+          type: object
+          description: Additional error context
+          additionalProperties: true

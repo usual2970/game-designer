@@ -1,0 +1,4 @@
+go 1.24
+
+use ./server-template
+use ./cli
