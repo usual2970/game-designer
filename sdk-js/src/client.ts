@@ -3,11 +3,12 @@ import type {
   SessionResponse,
   ProfileResponse,
   UpdateProfileRequest,
-  SaveGameStateRequest,
-  GameStateResponse,
-  SubmitScoreRequest,
-  SubmitScoreResponse,
-  LeaderboardResponse,
+  SlotConfigResponse,
+  BalanceResponse,
+  SpinRequest,
+  SpinResult,
+  SpinHistoryResponse,
+  SlotLeaderboardResponse,
   ApiErrorResponse,
 } from "./types";
 import { ApiError } from "./error";
@@ -45,27 +46,35 @@ export class GameDesignerClient {
     return response.json();
   }
 
-  async saveGameState(request: SaveGameStateRequest): Promise<GameStateResponse> {
-    const response = await this.request("PUT", "/api/v1/game-state", request);
+  async getSlotConfig(): Promise<SlotConfigResponse> {
+    const response = await this.request("GET", "/api/v1/slot/config");
     return response.json();
   }
 
-  async getGameState(): Promise<GameStateResponse | null> {
-    const response = await this.request("GET", "/api/v1/game-state");
-    if (response.status === 204) {
-      return null;
-    }
+  async getBalance(): Promise<BalanceResponse> {
+    const response = await this.request("GET", "/api/v1/balance");
     return response.json();
   }
 
-  async submitScore(request: SubmitScoreRequest): Promise<SubmitScoreResponse> {
-    const response = await this.request("POST", "/api/v1/scores", request);
+  async spin(request: SpinRequest): Promise<SpinResult> {
+    const response = await this.request("POST", "/api/v1/spin", request);
     return response.json();
   }
 
-  async getLeaderboard(
+  async getSpinHistory(
     options?: { limit?: number; offset?: number }
-  ): Promise<LeaderboardResponse> {
+  ): Promise<SpinHistoryResponse> {
+    const params = new URLSearchParams();
+    if (options?.limit !== undefined) params.set("limit", String(options.limit));
+    if (options?.offset !== undefined) params.set("offset", String(options.offset));
+    const qs = params.toString() ? `?${params.toString()}` : "";
+    const response = await this.request("GET", `/api/v1/spin/history${qs}`);
+    return response.json();
+  }
+
+  async getSlotLeaderboard(
+    options?: { limit?: number; offset?: number }
+  ): Promise<SlotLeaderboardResponse> {
     const params = new URLSearchParams();
     if (options?.limit !== undefined) params.set("limit", String(options.limit));
     if (options?.offset !== undefined) params.set("offset", String(options.offset));

@@ -1,6 +1,6 @@
 # @game-designer/sdk
 
-TypeScript H5 SDK for the Game Designer Server.
+TypeScript H5 SDK for the Game Designer Slot Machine Server.
 
 ## Install
 
@@ -23,20 +23,24 @@ const session = await client.createOrResumeSession({
   nickname: "Alice",
 });
 
-// Save game state
-await client.saveGameState({
-  data: { level: 5, coins: 200 },
-  checkpoint: "level-5",
-});
+// Get slot configuration
+const config = await client.getSlotConfig();
 
-// Resume game state
-const state = await client.getGameState();
+// Check balance
+const balance = await client.getBalance();
 
-// Submit score
-await client.submitScore({ score: 1500 });
+// Spin with virtual credit wager
+const result = await client.spin({ wager: 10 });
+console.log(result.reels);       // symbol grid
+console.log(result.paylineWins); // winning paylines
+console.log(result.totalPayout); // total payout in credits
+console.log(result.balance);     // updated balance
 
-// Read leaderboard
-const leaderboard = await client.getLeaderboard({ limit: 10 });
+// Spin history
+const history = await client.getSpinHistory({ limit: 20 });
+
+// Slot leaderboard
+const leaderboard = await client.getSlotLeaderboard({ limit: 10 });
 ```
 
 ## Error Handling
@@ -45,10 +49,10 @@ const leaderboard = await client.getLeaderboard({ limit: 10 });
 import { ApiError } from "@game-designer/sdk";
 
 try {
-  await client.submitScore({ score: 1500 });
+  await client.spin({ wager: 99999 });
 } catch (error) {
   if (error instanceof ApiError) {
-    console.log(error.code);    // "INVALID_PARAMETERS" | "UNAUTHORIZED" | ...
+    console.log(error.code);    // "INSUFFICIENT_BALANCE" | "INVALID_PARAMETERS" | ...
     console.log(error.message); // human-readable message
     console.log(error.details); // additional context
   }
@@ -62,10 +66,11 @@ try {
 | `createOrResumeSession(request)` | Create or resume a player session |
 | `getPlayerProfile()` | Get current player profile |
 | `updatePlayerProfile(request)` | Update player profile |
-| `saveGameState(request)` | Save game progress |
-| `getGameState()` | Load saved game state (returns `null` if none) |
-| `submitScore(request)` | Submit a player score |
-| `getLeaderboard(options?)` | Read leaderboard with optional pagination |
+| `getSlotConfig()` | Get slot machine configuration (reels, paylines, wager limits) |
+| `getBalance()` | Get current virtual credit balance |
+| `spin(request)` | Perform a server-authoritative spin with a wager |
+| `getSpinHistory(options?)` | Read spin history with optional pagination |
+| `getSlotLeaderboard(options?)` | Read slot leaderboard ranked by highest balance |
 
 ## Build
 

@@ -25,39 +25,75 @@ export interface UpdateProfileRequest {
   avatarUrl?: string;
 }
 
-export interface SaveGameStateRequest {
-  data: Record<string, unknown>;
-  checkpoint?: string;
+export interface SymbolDefinition {
+  name: string;
+  payoutMultiplier: number;
 }
 
-export interface GameStateResponse {
-  data: Record<string, unknown>;
-  checkpoint?: string;
-  savedAt: string;
+export interface PaylineDefinition {
+  id: number;
+  positions: number[];
 }
 
-export interface SubmitScoreRequest {
-  score: number;
-  metadata?: Record<string, unknown>;
+export interface SlotConfigResponse {
+  reels: number;
+  rows: number;
+  paylines: PaylineDefinition[];
+  symbols: SymbolDefinition[];
+  minWager: number;
+  maxWager: number;
+  defaultBalance: number;
 }
 
-export interface SubmitScoreResponse {
-  accepted: boolean;
-  rank: number | null;
-  bestScore: number;
-  isNewBest: boolean;
+export interface BalanceResponse {
+  balance: number;
 }
 
-export interface LeaderboardEntry {
+export interface SpinRequest {
+  wager: number;
+}
+
+export interface PaylineWin {
+  paylineId: number;
+  symbol: string;
+  count: number;
+  payout: number;
+}
+
+export interface SpinResult {
+  spinId: string;
+  wager: number;
+  reels: string[][];
+  paylineWins: PaylineWin[];
+  totalPayout: number;
+  balance: number;
+}
+
+export interface SpinHistoryEntry {
+  spinId: string;
+  wager: number;
+  totalPayout: number;
+  balance: number;
+  reels: string[][];
+  paylineWins: PaylineWin[];
+  spunAt: string;
+}
+
+export interface SpinHistoryResponse {
+  entries: SpinHistoryEntry[];
+  total: number;
+}
+
+export interface SlotLeaderboardEntry {
   rank: number;
   playerId: string;
   nickname: string;
-  score: number;
-  achievedAt: string;
+  balance: number;
+  updatedAt: string;
 }
 
-export interface LeaderboardResponse {
-  entries: LeaderboardEntry[];
+export interface SlotLeaderboardResponse {
+  entries: SlotLeaderboardEntry[];
   total: number;
 }
 
@@ -66,6 +102,7 @@ export type ErrorCode =
   | "UNAUTHORIZED"
   | "NOT_FOUND"
   | "SESSION_EXPIRED"
+  | "INSUFFICIENT_BALANCE"
   | "INTERNAL_ERROR";
 
 export interface ApiErrorResponse {

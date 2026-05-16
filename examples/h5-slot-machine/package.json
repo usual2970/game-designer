@@ -1,8 +1,8 @@
 {
-  "name": "h5-activity-game-example",
+  "name": "h5-slot-machine-example",
   "version": "0.1.0",
   "private": true,
-  "description": "Example H5 activity game using the Game Designer SDK",
+  "description": "Example H5 slot machine game using the Game Designer SDK",
   "scripts": {
     "build": "tsc",
     "test": "vitest run"

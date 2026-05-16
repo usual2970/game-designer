@@ -56,59 +56,98 @@ describe("GameDesignerClient", () => {
     expect(result.nickname).toBe("Alice");
   });
 
-  it("saves and loads game state", async () => {
+  it("gets slot config", async () => {
     client.setToken("tok-123");
-    const savedAt = "2026-05-16T12:00:00Z";
-    const saveResp = { data: { level: 5 }, checkpoint: "level-5", savedAt };
-    const loadResp = { data: { level: 5 }, checkpoint: "level-5", savedAt };
-
-    globalThis.fetch = mockFetch([
-      { status: 200, body: saveResp },
-      { status: 200, body: loadResp },
-    ]);
-
-    await client.saveGameState({ data: { level: 5 }, checkpoint: "level-5" });
-    const state = await client.getGameState();
-
-    expect(state?.data.level).toBe(5);
-    expect(state?.checkpoint).toBe("level-5");
-  });
-
-  it("returns null for no game state (204)", async () => {
-    client.setToken("tok-123");
-    globalThis.fetch = vi.fn(async () => new Response(null, { status: 204 }));
-
-    const state = await client.getGameState();
-    expect(state).toBeNull();
-  });
-
-  it("submits a score", async () => {
-    client.setToken("tok-123");
-    const scoreResp = {
-      accepted: true,
-      rank: 1,
-      bestScore: 1500,
-      isNewBest: true,
+    const configResp = {
+      reels: 3,
+      rows: 3,
+      paylines: [{ id: 1, positions: [0, 0, 0] }],
+      symbols: [{ name: "Cherry", payoutMultiplier: 5 }],
+      minWager: 1,
+      maxWager: 100,
+      defaultBalance: 1000,
     };
-    globalThis.fetch = mockFetch([{ status: 200, body: scoreResp }]);
+    globalThis.fetch = mockFetch([{ status: 200, body: configResp }]);
 
-    const result = await client.submitScore({ score: 1500 });
-    expect(result.accepted).toBe(true);
-    expect(result.rank).toBe(1);
+    const result = await client.getSlotConfig();
+    expect(result.reels).toBe(3);
+    expect(result.symbols[0].name).toBe("Cherry");
   });
 
-  it("reads leaderboard with pagination", async () => {
+  it("gets balance", async () => {
+    client.setToken("tok-123");
+    globalThis.fetch = mockFetch([{ status: 200, body: { balance: 1000 } }]);
+
+    const result = await client.getBalance();
+    expect(result.balance).toBe(1000);
+  });
+
+  it("sends a spin request and returns typed result", async () => {
+    client.setToken("tok-123");
+    const spinResp = {
+      spinId: "spin-1",
+      wager: 10,
+      reels: [["Cherry", "Lemon", "Orange"], ["Cherry", "Bell", "Plum"], ["Cherry", "Seven", "BAR"]],
+      paylineWins: [{ paylineId: 1, symbol: "Cherry", count: 3, payout: 50 }],
+      totalPayout: 50,
+      balance: 1040,
+    };
+    globalThis.fetch = mockFetch([{ status: 200, body: spinResp }]);
+
+    const result = await client.spin({ wager: 10 });
+    expect(result.spinId).toBe("spin-1");
+    expect(result.totalPayout).toBe(50);
+    expect(result.balance).toBe(1040);
+    expect(result.paylineWins).toHaveLength(1);
+    expect(result.paylineWins[0].symbol).toBe("Cherry");
+  });
+
+  it("handles a no-win spin with zero payout", async () => {
+    client.setToken("tok-123");
+    const spinResp = {
+      spinId: "spin-2",
+      wager: 10,
+      reels: [["Cherry", "Lemon", "Orange"], ["Bell", "Plum", "Seven"], ["BAR", "Cherry", "Lemon"]],
+      paylineWins: [],
+      totalPayout: 0,
+      balance: 990,
+    };
+    globalThis.fetch = mockFetch([{ status: 200, body: spinResp }]);
+
+    const result = await client.spin({ wager: 10 });
+    expect(result.totalPayout).toBe(0);
+    expect(result.paylineWins).toHaveLength(0);
+    expect(result.balance).toBe(990);
+  });
+
+  it("gets spin history with pagination", async () => {
+    client.setToken("tok-123");
+    const histResp = {
+      entries: [
+        { spinId: "s1", wager: 10, totalPayout: 50, balance: 1040, reels: [["A"]], paylineWins: [], spunAt: "2026-05-16T12:00:00Z" },
+      ],
+      total: 5,
+    };
+    globalThis.fetch = mockFetch([{ status: 200, body: histResp }]);
+
+    const result = await client.getSpinHistory({ limit: 1, offset: 0 });
+    expect(result.entries).toHaveLength(1);
+    expect(result.total).toBe(5);
+  });
+
+  it("reads slot leaderboard with pagination", async () => {
     client.setToken("tok-123");
     const lbResp = {
       entries: [
-        { rank: 1, playerId: "p1", nickname: "Alice", score: 2000, achievedAt: "2026-05-16T12:00:00Z" },
+        { rank: 1, playerId: "p1", nickname: "Alice", balance: 2000, updatedAt: "2026-05-16T12:00:00Z" },
       ],
       total: 1,
     };
     globalThis.fetch = mockFetch([{ status: 200, body: lbResp }]);
 
-    const result = await client.getLeaderboard({ limit: 10, offset: 0 });
+    const result = await client.getSlotLeaderboard({ limit: 10, offset: 0 });
     expect(result.entries).toHaveLength(1);
+    expect(result.entries[0].balance).toBe(2000);
     expect(result.total).toBe(1);
   });
 
@@ -128,7 +167,7 @@ describe("GameDesignerClient", () => {
     }
   });
 
-  it("throws ApiError with details", async () => {
+  it("throws ApiError for invalid wager", async () => {
     client.setToken("tok-123");
     globalThis.fetch = mockFetch([
       {
@@ -136,27 +175,40 @@ describe("GameDesignerClient", () => {
         body: {
           error: "Invalid request parameters",
           code: "INVALID_PARAMETERS",
-          details: { fields: ["score"] },
-        },
-      },
-      {
-        status: 400,
-        body: {
-          error: "Invalid request parameters",
-          code: "INVALID_PARAMETERS",
-          details: { fields: ["score"] },
+          details: { fields: ["wager"] },
         },
       },
     ]);
 
-    await expect(client.submitScore({ score: -1 })).rejects.toThrow(ApiError);
-
     try {
-      await client.submitScore({ score: -1 });
+      await client.spin({ wager: 0 });
+      expect.unreachable("expected ApiError");
     } catch (e) {
+      expect(e).toBeInstanceOf(ApiError);
       const err = e as ApiError;
       expect(err.code).toBe("INVALID_PARAMETERS");
-      expect(err.details?.fields).toEqual(["score"]);
+      expect(err.details?.fields).toEqual(["wager"]);
+    }
+  });
+
+  it("throws ApiError for insufficient balance", async () => {
+    client.setToken("tok-123");
+    globalThis.fetch = mockFetch([
+      {
+        status: 400,
+        body: {
+          error: "insufficient virtual credits",
+          code: "INSUFFICIENT_BALANCE",
+        },
+      },
+    ]);
+
+    try {
+      await client.spin({ wager: 99999 });
+      expect.unreachable("expected ApiError");
+    } catch (e) {
+      expect(e).toBeInstanceOf(ApiError);
+      expect((e as ApiError).code).toBe("INSUFFICIENT_BALANCE");
     }
   });
 });
