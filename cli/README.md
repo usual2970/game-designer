@@ -2,12 +2,14 @@
 
 Go CLI for deploying the Game Designer Server to PaaS.
 
-## Install
+## Build
 
 ```bash
 cd cli
-go build -o game-designer ./cmd/game-designer
+GOWORK=off go build -o game-designer ./cmd/game-designer
 ```
+
+Agents using the Game Designer plugin should run the `setup-game-designer-cli` skill instead of building manually. That skill handles Go version checks, build, and binary verification in one step.
 
 ## Commands
 
