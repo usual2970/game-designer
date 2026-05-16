@@ -7,9 +7,13 @@ import (
 	"github.com/example/game-designer-server/internal/store"
 )
 
+type noopBalanceInit struct{}
+
+func (n *noopBalanceInit) Init(playerID string) {}
+
 func TestCreateOrResume_NewPlayer(t *testing.T) {
 	s := store.New()
-	svc := NewService(s, time.Hour)
+	svc := NewService(s, time.Hour, &noopBalanceInit{})
 
 	resp, err := svc.CreateOrResume(CreateSessionRequest{
 		PlayerID: "player1",
@@ -31,7 +35,7 @@ func TestCreateOrResume_NewPlayer(t *testing.T) {
 
 func TestCreateOrResume_ResumeExisting(t *testing.T) {
 	s := store.New()
-	svc := NewService(s, time.Hour)
+	svc := NewService(s, time.Hour, &noopBalanceInit{})
 
 	first, _ := svc.CreateOrResume(CreateSessionRequest{
 		PlayerID: "player1",
@@ -51,7 +55,7 @@ func TestCreateOrResume_ResumeExisting(t *testing.T) {
 
 func TestCreateOrResume_MissingPlayerID(t *testing.T) {
 	s := store.New()
-	svc := NewService(s, time.Hour)
+	svc := NewService(s, time.Hour, &noopBalanceInit{})
 
 	_, err := svc.CreateOrResume(CreateSessionRequest{})
 	if err != ErrMissingPlayerID {
@@ -61,7 +65,7 @@ func TestCreateOrResume_MissingPlayerID(t *testing.T) {
 
 func TestValidateToken_Valid(t *testing.T) {
 	s := store.New()
-	svc := NewService(s, time.Hour)
+	svc := NewService(s, time.Hour, &noopBalanceInit{})
 
 	resp, _ := svc.CreateOrResume(CreateSessionRequest{PlayerID: "player1"})
 	playerID, ok := svc.ValidateToken(resp.Token)
@@ -75,7 +79,7 @@ func TestValidateToken_Valid(t *testing.T) {
 
 func TestValidateToken_Invalid(t *testing.T) {
 	s := store.New()
-	svc := NewService(s, time.Hour)
+	svc := NewService(s, time.Hour, &noopBalanceInit{})
 
 	_, ok := svc.ValidateToken("nonexistent")
 	if ok {

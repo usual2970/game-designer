@@ -7,12 +7,12 @@ import (
 
 // Store is an in-memory persistence layer for local development.
 type Store struct {
-	mu          sync.RWMutex
-	sessions    map[string]*SessionRecord
-	profiles    map[string]*ProfileRecord
-	gameStates  map[string]*GameStateRecord
-	scores      map[string]*ScoreRecord // keyed by playerID
-	leaderboard []*LeaderboardEntry
+	mu             sync.RWMutex
+	sessions       map[string]*SessionRecord
+	profiles       map[string]*ProfileRecord
+	balances       map[string]*BalanceRecord
+	spins          map[string][]*SpinRecord
+	leaderboard    []*SlotLeaderboardEntry
 }
 
 type SessionRecord struct {
@@ -30,34 +30,45 @@ type ProfileRecord struct {
 	UpdatedAt time.Time
 }
 
-type GameStateRecord struct {
+type BalanceRecord struct {
 	PlayerID  string
-	Data      map[string]interface{}
-	Checkpoint string
-	SavedAt   time.Time
-}
-
-type ScoreRecord struct {
-	PlayerID  string
-	BestScore int64
+	Balance   int64
 	UpdatedAt time.Time
 }
 
-type LeaderboardEntry struct {
+type SpinRecord struct {
+	SpinID      string
+	PlayerID    string
+	Wager       int64
+	TotalPayout int64
+	Balance     int64
+	Reels       [][]string
+	PaylineWins []PaylineWinRecord
+	SpunAt      time.Time
+}
+
+type PaylineWinRecord struct {
+	PaylineID int
+	Symbol    string
+	Count     int
+	Payout    int64
+}
+
+type SlotLeaderboardEntry struct {
 	Rank      int
 	PlayerID  string
 	Nickname  string
-	Score     int64
-	AchievedAt time.Time
+	Balance   int64
+	UpdatedAt time.Time
 }
 
 func New() *Store {
 	return &Store{
 		sessions:    make(map[string]*SessionRecord),
 		profiles:    make(map[string]*ProfileRecord),
-		gameStates:  make(map[string]*GameStateRecord),
-		scores:      make(map[string]*ScoreRecord),
-		leaderboard: make([]*LeaderboardEntry, 0),
+		balances:    make(map[string]*BalanceRecord),
+		spins:       make(map[string][]*SpinRecord),
+		leaderboard: make([]*SlotLeaderboardEntry, 0),
 	}
 }
 
@@ -93,44 +104,84 @@ func (s *Store) GetProfile(playerID string) (*ProfileRecord, bool) {
 	return rec, ok
 }
 
-func (s *Store) SaveGameState(rec *GameStateRecord) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.gameStates[rec.PlayerID] = rec
+func (s *Store) GetProfileByPlayerID(playerID string) (*ProfileRecord, bool) {
+	return s.GetProfile(playerID)
 }
 
-func (s *Store) GetGameState(playerID string) (*GameStateRecord, bool) {
+func (s *Store) GetBalance(playerID string) (*BalanceRecord, bool) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	rec, ok := s.gameStates[playerID]
+	rec, ok := s.balances[playerID]
 	return rec, ok
 }
 
-func (s *Store) SubmitScore(playerID string, score int64) (*ScoreRecord, bool, error) {
+func (s *Store) InitBalance(playerID string, amount int64) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if _, exists := s.balances[playerID]; !exists {
+		s.balances[playerID] = &BalanceRecord{
+			PlayerID:  playerID,
+			Balance:   amount,
+			UpdatedAt: time.Now(),
+		}
+	}
+}
+
+// UpdateBalance deducts wager, adds payout, and saves the spin record atomically.
+func (s *Store) UpdateBalance(playerID string, wager, payout int64, rec *SpinRecord) (int64, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	existing, exists := s.scores[playerID]
-	isNewBest := !exists || score > existing.BestScore
-
-	bestScore := score
-	if exists && !isNewBest {
-		bestScore = existing.BestScore
+	bal, exists := s.balances[playerID]
+	if !exists {
+		bal = &BalanceRecord{PlayerID: playerID, Balance: 0, UpdatedAt: time.Now()}
+		s.balances[playerID] = bal
 	}
 
-	now := time.Now()
-	s.scores[playerID] = &ScoreRecord{
-		PlayerID:  playerID,
-		BestScore: bestScore,
-		UpdatedAt: now,
+	if bal.Balance < wager {
+		return bal.Balance, ErrInsufficientBalance
 	}
 
+	bal.Balance = bal.Balance - wager + payout
+	bal.UpdatedAt = time.Now()
+	rec.Balance = bal.Balance
+
+	s.spins[playerID] = append(s.spins[playerID], rec)
 	s.rebuildLeaderboard()
 
-	return s.scores[playerID], isNewBest, nil
+	return bal.Balance, nil
 }
 
-func (s *Store) GetLeaderboard(limit, offset int) ([]*LeaderboardEntry, int) {
+var ErrInsufficientBalance = func() *insufficientBalanceErr {
+	return &insufficientBalanceErr{}
+}()
+
+type insufficientBalanceErr struct{}
+
+func (e *insufficientBalanceErr) Error() string { return "insufficient virtual credits" }
+
+func (s *Store) GetSpinHistory(playerID string, limit, offset int) ([]*SpinRecord, int) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	history := s.spins[playerID]
+	total := len(history)
+
+	start := offset
+	if start > total {
+		start = total
+	}
+	end := start + limit
+	if end > total {
+		end = total
+	}
+
+	result := make([]*SpinRecord, end-start)
+	copy(result, history[start:end])
+	return result, total
+}
+
+func (s *Store) GetSlotLeaderboard(limit, offset int) ([]*SlotLeaderboardEntry, int) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
@@ -144,42 +195,30 @@ func (s *Store) GetLeaderboard(limit, offset int) ([]*LeaderboardEntry, int) {
 		end = total
 	}
 
-	result := make([]*LeaderboardEntry, end-start)
+	result := make([]*SlotLeaderboardEntry, end-start)
 	copy(result, s.leaderboard[start:end])
 	return result, total
 }
 
-func (s *Store) GetScore(playerID string) (*ScoreRecord, bool) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	rec, ok := s.scores[playerID]
-	return rec, ok
-}
-
-func (s *Store) GetProfileByPlayerID(playerID string) (*ProfileRecord, bool) {
-	return s.GetProfile(playerID)
-}
-
 func (s *Store) rebuildLeaderboard() {
-	entries := make([]*LeaderboardEntry, 0, len(s.scores))
-	for _, sr := range s.scores {
-		profile, hasProfile := s.profiles[sr.PlayerID]
-		nickname := sr.PlayerID
+	entries := make([]*SlotLeaderboardEntry, 0, len(s.balances))
+	for _, br := range s.balances {
+		profile, hasProfile := s.profiles[br.PlayerID]
+		nickname := br.PlayerID
 		if hasProfile && profile.Nickname != "" {
 			nickname = profile.Nickname
 		}
-		entries = append(entries, &LeaderboardEntry{
-			PlayerID:   sr.PlayerID,
-			Nickname:   nickname,
-			Score:      sr.BestScore,
-			AchievedAt: sr.UpdatedAt,
+		entries = append(entries, &SlotLeaderboardEntry{
+			PlayerID:  br.PlayerID,
+			Nickname:  nickname,
+			Balance:   br.Balance,
+			UpdatedAt: br.UpdatedAt,
 		})
 	}
 
-	// Sort descending by score
 	for i := 0; i < len(entries); i++ {
 		for j := i + 1; j < len(entries); j++ {
-			if entries[j].Score > entries[i].Score {
+			if entries[j].Balance > entries[i].Balance {
 				entries[i], entries[j] = entries[j], entries[i]
 			}
 		}

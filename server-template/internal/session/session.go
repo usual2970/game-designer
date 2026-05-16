@@ -8,13 +8,18 @@ import (
 	"github.com/example/game-designer-server/internal/store"
 )
 
-type Service struct {
-	store *store.Store
-	ttl   time.Duration
+type BalanceInitializer interface {
+	Init(playerID string)
 }
 
-func NewService(s *store.Store, ttl time.Duration) *Service {
-	return &Service{store: s, ttl: ttl}
+type Service struct {
+	store   *store.Store
+	ttl     time.Duration
+	balance BalanceInitializer
+}
+
+func NewService(s *store.Store, ttl time.Duration, bi BalanceInitializer) *Service {
+	return &Service{store: s, ttl: ttl, balance: bi}
 }
 
 type CreateSessionRequest struct {
@@ -55,6 +60,7 @@ func (svc *Service) CreateOrResume(req CreateSessionRequest) (*SessionResponse, 
 
 	if isNew {
 		now := time.Now()
+		svc.balance.Init(req.PlayerID)
 		svc.store.SaveProfile(&store.ProfileRecord{
 			PlayerID:  req.PlayerID,
 			Nickname:  req.Nickname,

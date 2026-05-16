@@ -3,26 +3,46 @@ package http
 import (
 	"bytes"
 	"encoding/json"
-	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
 
-	"github.com/example/game-designer-server/internal/gamestate"
-	"github.com/example/game-designer-server/internal/leaderboard"
+	"github.com/example/game-designer-server/internal/balance"
 	"github.com/example/game-designer-server/internal/profile"
 	"github.com/example/game-designer-server/internal/session"
+	"github.com/example/game-designer-server/internal/slot"
 	"github.com/example/game-designer-server/internal/store"
 )
 
+type testRNG struct {
+	values []int
+	index  int
+}
+
+func (t *testRNG) Intn(n int) int {
+	v := t.values[t.index%len(t.values)]
+	t.index++
+	return v % n
+}
+
 func setupTestHandler() *Handler {
 	s := store.New()
-	sessSvc := session.NewService(s, time.Hour)
+	balSvc := balance.NewService(s)
+	sessSvc := session.NewService(s, time.Hour, balSvc)
 	profSvc := profile.NewService(s)
-	gsSvc := gamestate.NewService(s)
-	lbSvc := leaderboard.NewService(s)
-	return NewHandler(sessSvc, profSvc, gsSvc, lbSvc)
+	slotSvc := slot.NewService(s, balSvc)
+	return NewHandler(sessSvc, profSvc, slotSvc, balSvc)
+}
+
+func setupTestHandlerWithRNG(rng slot.RNG) (*Handler, *slot.Service) {
+	s := store.New()
+	balSvc := balance.NewService(s)
+	sessSvc := session.NewService(s, time.Hour, balSvc)
+	profSvc := profile.NewService(s)
+	slotSvc := slot.NewService(s, balSvc)
+	slotSvc.SetRNG(rng)
+	return NewHandler(sessSvc, profSvc, slotSvc, balSvc), slotSvc
 }
 
 func createTestSession(h *Handler, playerID string) string {
@@ -43,13 +63,15 @@ func createTestSession(h *Handler, playerID string) string {
 	return resp["token"].(string)
 }
 
-func TestFullActivityLoop(t *testing.T) {
-	h := setupTestHandler()
+func TestFullSlotLoop(t *testing.T) {
+	// Deterministic reels: all "Cherry" (index 0)
+	rng := &testRNG{values: []int{0, 0, 0, 0, 0, 0, 0, 0, 0}}
+	h, _ := setupTestHandlerWithRNG(rng)
 	mux := http.NewServeMux()
 	h.RegisterRoutes(mux)
 
 	// Step 1: Create session
-	token := createTestSession(h, "loop-player")
+	token := createTestSession(h, "slot-player")
 	if token == "" {
 		t.Fatal("expected non-empty session token")
 	}
@@ -60,54 +82,75 @@ func TestFullActivityLoop(t *testing.T) {
 	w := httptest.NewRecorder()
 	mux.ServeHTTP(w, req)
 	if w.Code != 200 {
-		t.Fatalf("GET profile: expected 200, got %d, body: %s", w.Code, w.Body.String())
+		t.Fatalf("GET profile: expected 200, got %d", w.Code)
 	}
 
-	// Step 3: Save game state
-	saveBody, _ := json.Marshal(map[string]interface{}{
-		"data":       map[string]interface{}{"level": float64(5), "coins": float64(200)},
-		"checkpoint": "level-5",
-	})
-	req = httptest.NewRequest("PUT", "/api/v1/game-state", bytes.NewReader(saveBody))
+	// Step 3: Get slot config
+	req = httptest.NewRequest("GET", "/api/v1/slot/config", nil)
+	req.Header.Set("X-Session-Token", token)
+	w = httptest.NewRecorder()
+	mux.ServeHTTP(w, req)
+	if w.Code != 200 {
+		t.Fatalf("GET slot/config: expected 200, got %d", w.Code)
+	}
+	var configResp map[string]interface{}
+	json.NewDecoder(w.Body).Decode(&configResp)
+	if configResp["reels"] != float64(3) {
+		t.Errorf("expected 3 reels, got %v", configResp["reels"])
+	}
+
+	// Step 4: Get balance
+	req = httptest.NewRequest("GET", "/api/v1/balance", nil)
+	req.Header.Set("X-Session-Token", token)
+	w = httptest.NewRecorder()
+	mux.ServeHTTP(w, req)
+	if w.Code != 200 {
+		t.Fatalf("GET balance: expected 200, got %d", w.Code)
+	}
+	var balResp map[string]interface{}
+	json.NewDecoder(w.Body).Decode(&balResp)
+	if balResp["balance"] != float64(1000) {
+		t.Errorf("expected initial balance=1000, got %v", balResp["balance"])
+	}
+
+	// Step 5: Spin
+	spinBody, _ := json.Marshal(map[string]interface{}{"wager": float64(10)})
+	req = httptest.NewRequest("POST", "/api/v1/spin", bytes.NewReader(spinBody))
 	req.Header.Set("X-Session-Token", token)
 	req.Header.Set("Content-Type", "application/json")
 	w = httptest.NewRecorder()
 	mux.ServeHTTP(w, req)
 	if w.Code != 200 {
-		t.Fatalf("PUT game-state: expected 200, got %d", w.Code)
+		t.Fatalf("POST spin: expected 200, got %d, body: %s", w.Code, w.Body.String())
+	}
+	var spinResp map[string]interface{}
+	json.NewDecoder(w.Body).Decode(&spinResp)
+	if spinResp["spinId"] == nil || spinResp["spinId"] == "" {
+		t.Error("expected non-empty spinId")
+	}
+	if spinResp["totalPayout"] == nil {
+		t.Error("expected totalPayout field")
+	}
+	if spinResp["balance"] == nil {
+		t.Error("expected balance field")
 	}
 
-	// Step 4: Load game state
-	req = httptest.NewRequest("GET", "/api/v1/game-state", nil)
+	// Step 6: Get spin history
+	req = httptest.NewRequest("GET", "/api/v1/spin/history", nil)
 	req.Header.Set("X-Session-Token", token)
 	w = httptest.NewRecorder()
 	mux.ServeHTTP(w, req)
 	if w.Code != 200 {
-		t.Fatalf("GET game-state: expected 200, got %d", w.Code)
+		t.Fatalf("GET spin/history: expected 200, got %d", w.Code)
 	}
-	var stateResp map[string]interface{}
-	json.NewDecoder(w.Body).Decode(&stateResp)
-	if stateResp["checkpoint"] != "level-5" {
-		t.Errorf("expected checkpoint=level-5, got %v", stateResp["checkpoint"])
-	}
-
-	// Step 5: Submit score
-	scoreBody, _ := json.Marshal(map[string]interface{}{"score": 1500})
-	req = httptest.NewRequest("POST", "/api/v1/scores", bytes.NewReader(scoreBody))
-	req.Header.Set("X-Session-Token", token)
-	req.Header.Set("Content-Type", "application/json")
-	w = httptest.NewRecorder()
-	mux.ServeHTTP(w, req)
-	if w.Code != 200 {
-		t.Fatalf("POST scores: expected 200, got %d", w.Code)
-	}
-	var scoreResp map[string]interface{}
-	json.NewDecoder(w.Body).Decode(&scoreResp)
-	if scoreResp["accepted"] != true {
-		t.Error("expected accepted=true")
+	var histResp map[string]interface{}
+	json.NewDecoder(w.Body).Decode(&histResp)
+	entries := histResp["entries"].([]interface{})
+	if len(entries) != 1 {
+		t.Errorf("expected 1 spin history entry, got %d", len(entries))
 	}
 
-	// Step 6: Get leaderboard
+	// Step 7: Get leaderboard
 	req = httptest.NewRequest("GET", "/api/v1/leaderboard", nil)
 	req.Header.Set("X-Session-Token", token)
 	w = httptest.NewRecorder()
@@ -117,9 +160,9 @@ func TestFullActivityLoop(t *testing.T) {
 	}
 	var lbResp map[string]interface{}
 	json.NewDecoder(w.Body).Decode(&lbResp)
-	entries := lbResp["entries"].([]interface{})
-	if len(entries) != 1 {
-		t.Fatalf("expected 1 leaderboard entry, got %d", len(entries))
+	lbEntries := lbResp["entries"].([]interface{})
+	if len(lbEntries) != 1 {
+		t.Fatalf("expected 1 leaderboard entry, got %d", len(lbEntries))
 	}
 }
 
@@ -174,73 +217,100 @@ func TestCreateSession_MissingPlayerID(t *testing.T) {
 	}
 }
 
-func TestGameState_NoContent(t *testing.T) {
+func TestSpin_InvalidWager(t *testing.T) {
 	h := setupTestHandler()
 	mux := http.NewServeMux()
 	h.RegisterRoutes(mux)
 
-	token := createTestSession(h, "empty-player")
+	token := createTestSession(h, "wager-player")
 
-	req := httptest.NewRequest("GET", "/api/v1/game-state", nil)
+	body, _ := json.Marshal(map[string]interface{}{"wager": float64(0)})
+	req := httptest.NewRequest("POST", "/api/v1/spin", bytes.NewReader(body))
 	req.Header.Set("X-Session-Token", token)
+	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	mux.ServeHTTP(w, req)
 
-	if w.Code != 204 {
-		t.Errorf("expected 204 for no game state, got %d", w.Code)
+	if w.Code != 400 {
+		t.Errorf("expected 400 for zero wager, got %d", w.Code)
+	}
+	var errResp map[string]interface{}
+	json.NewDecoder(w.Body).Decode(&errResp)
+	if errResp["code"] != "INVALID_PARAMETERS" {
+		t.Errorf("expected code=INVALID_PARAMETERS, got %v", errResp["code"])
 	}
 }
 
-func TestMultipleScores_LeaderboardRanking(t *testing.T) {
+func TestSpin_InsufficientBalance(t *testing.T) {
+	// Use deterministic RNG that produces non-matching symbols (no wins)
+	rng := &testRNG{values: []int{0, 1, 2, 3, 4, 5, 0, 1, 2}}
+	h, _ := setupTestHandlerWithRNG(rng)
+	mux := http.NewServeMux()
+	h.RegisterRoutes(mux)
+
+	token := createTestSession(h, "poor-player")
+
+	// Drain balance with max wagers (10 * 100 = 1000, starting balance is 1000)
+	for i := 0; i < 10; i++ {
+		body, _ := json.Marshal(map[string]interface{}{"wager": float64(100)})
+		req := httptest.NewRequest("POST", "/api/v1/spin", bytes.NewReader(body))
+		req.Header.Set("X-Session-Token", token)
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		mux.ServeHTTP(w, req)
+	}
+
+	// Now try one more spin with insufficient balance
+	body, _ := json.Marshal(map[string]interface{}{"wager": float64(1)})
+	req := httptest.NewRequest("POST", "/api/v1/spin", bytes.NewReader(body))
+	req.Header.Set("X-Session-Token", token)
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	mux.ServeHTTP(w, req)
+
+	if w.Code != 400 {
+		t.Fatalf("expected 400 for insufficient balance, got %d", w.Code)
+	}
+	var errResp map[string]interface{}
+	json.NewDecoder(w.Body).Decode(&errResp)
+	if errResp["code"] != "INSUFFICIENT_BALANCE" {
+		t.Errorf("expected code=INSUFFICIENT_BALANCE, got %v", errResp["code"])
+	}
+}
+
+func TestMultiplePlayers_LeaderboardRanking(t *testing.T) {
 	h := setupTestHandler()
 	mux := http.NewServeMux()
 	h.RegisterRoutes(mux)
 
-	// Create two players
-	token1 := createTestSession(h, "multi-p1")
-	token2 := createTestSession(h, "multi-p2")
+	token1 := createTestSession(h, "lb-p1")
+	token2 := createTestSession(h, "lb-p2")
 
-	// Player 1 scores 100
-	body, _ := json.Marshal(map[string]interface{}{"score": 100})
-	req := httptest.NewRequest("POST", "/api/v1/scores", bytes.NewReader(body))
+	// Each player spins once
+	body, _ := json.Marshal(map[string]interface{}{"wager": float64(10)})
+	req := httptest.NewRequest("POST", "/api/v1/spin", bytes.NewReader(body))
 	req.Header.Set("X-Session-Token", token1)
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	mux.ServeHTTP(w, req)
 
-	// Player 2 scores 200
-	body2, _ := json.Marshal(map[string]interface{}{"score": 200})
-	req2 := httptest.NewRequest("POST", "/api/v1/scores", bytes.NewReader(body2))
+	body2, _ := json.Marshal(map[string]interface{}{"wager": float64(10)})
+	req2 := httptest.NewRequest("POST", "/api/v1/spin", bytes.NewReader(body2))
 	req2.Header.Set("X-Session-Token", token2)
 	req2.Header.Set("Content-Type", "application/json")
 	w2 := httptest.NewRecorder()
 	mux.ServeHTTP(w2, req2)
 
-	// Player 1 scores 300 (new best)
-	body3, _ := json.Marshal(map[string]interface{}{"score": 300})
-	req3 := httptest.NewRequest("POST", "/api/v1/scores", bytes.NewReader(body3))
+	// Check leaderboard
+	req3 := httptest.NewRequest("GET", "/api/v1/leaderboard", nil)
 	req3.Header.Set("X-Session-Token", token1)
-	req3.Header.Set("Content-Type", "application/json")
 	w3 := httptest.NewRecorder()
 	mux.ServeHTTP(w3, req3)
-	io.ReadAll(w3.Body)
-
-	// Check leaderboard
-	req4 := httptest.NewRequest("GET", "/api/v1/leaderboard", nil)
-	req4.Header.Set("X-Session-Token", token1)
-	w4 := httptest.NewRecorder()
-	mux.ServeHTTP(w4, req4)
 
 	var lbResp map[string]interface{}
-	json.NewDecoder(w4.Body).Decode(&lbResp)
+	json.NewDecoder(w3.Body).Decode(&lbResp)
 	entries := lbResp["entries"].([]interface{})
-
 	if len(entries) != 2 {
 		t.Fatalf("expected 2 entries, got %d", len(entries))
-	}
-
-	first := entries[0].(map[string]interface{})
-	if first["score"] != float64(300) {
-		t.Errorf("expected top score=300, got %v", first["score"])
 	}
 }
