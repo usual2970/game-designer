@@ -1,7 +1,7 @@
 ---
 title: "feat: Build Game Designer server plugin MVP"
 type: feat
-status: active
+status: completed
 date: 2026-05-16
 origin: docs/brainstorms/2026-05-16-game-designer-server-plugin-mvp-requirements.md
 ---
