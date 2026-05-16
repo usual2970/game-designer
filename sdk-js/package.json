@@ -2,9 +2,12 @@
   "name": "@game-designer/sdk",
   "version": "0.1.0",
   "description": "TypeScript H5 SDK for Game Designer Server",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
-  "files": ["dist"],
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "files": ["src", "dist"],
   "scripts": {
     "build": "tsc",
     "test": "vitest run"
