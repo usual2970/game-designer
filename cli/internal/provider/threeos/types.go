@@ -119,14 +119,6 @@ type GameListResp struct {
 	Data       []GameInfoResp `json:"data"`
 }
 
-// GameReviewResp mirrors domain.GameReviewResp (subset for CLI).
-type GameReviewResp struct {
-	URI     string `json:"uri"`
-	GameUri string `json:"gameUri"`
-	State   int    `json:"state"`
-	Name    string `json:"name"`
-}
-
 // GameReviewApplyReq mirrors domain.GameReviewApplyReq.
 type GameReviewApplyReq struct {
 	URI string `json:"uri"`

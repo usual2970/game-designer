@@ -114,26 +114,7 @@ func (p *ThreeOSProvider) deployCreate(ctx context.Context, config provider.Depl
 		return nil, err
 	}
 
-	packageURL := assetURLByLabel(assets, "package")
-	sqlURL := assetURLByLabel(assets, "sql")
-
-	screenConfig := ScreenConfig{}
-	if config.ScreenConfig != nil {
-		screenConfig = ScreenConfig{
-			ScreenType:  config.ScreenConfig.ScreenType,
-			HalfSupport: config.ScreenConfig.HalfSupport,
-			HalfRatio:   config.ScreenConfig.HalfRatio,
-		}
-	}
-
-	buildConfig := map[string]BuildConfigEntry{}
-	if config.BuildConfig != nil {
-		buildConfig = map[string]BuildConfigEntry{
-			"backend":  {WorkDir: config.BuildConfig.Backend.WorkDir, Cmd: config.BuildConfig.Backend.Cmd},
-			"frontend": {WorkDir: config.BuildConfig.Frontend.WorkDir, Cmd: config.BuildConfig.Frontend.Cmd},
-			"socket":   {WorkDir: config.BuildConfig.Socket.WorkDir, Cmd: config.BuildConfig.Socket.Cmd},
-		}
-	}
+	screenConfig, buildConfig := toAPIConfigs(config)
 
 	gameResp, err := p.client.CreateWithVersion(ctx, &GameCreateWithVersionReq{
 		Name:        config.GameName,
@@ -142,8 +123,8 @@ func (p *ThreeOSProvider) deployCreate(ctx context.Context, config provider.Depl
 		Version: GameVersionCreateReq{
 			Version:      config.Version,
 			ChangeLog:    config.ChangeLog,
-			FileUrl:      packageURL,
-			InitSqlUrl:   sqlURL,
+			FileUrl:      assetURLByLabel(assets, "package"),
+			InitSqlUrl:   assetURLByLabel(assets, "sql"),
 			BuildConfig:  buildConfig,
 			ScreenConfig: screenConfig,
 		},
@@ -161,18 +142,7 @@ func (p *ThreeOSProvider) deployCreate(ctx context.Context, config provider.Depl
 		Assets:   assets,
 	}
 
-	// Optional review application
-	if config.ReviewURI != "" {
-		if err := p.client.ApplyReview(ctx, config.ReviewURI); err != nil {
-			result.ReviewApplied = false
-			result.ReviewURI = config.ReviewURI
-			return result, fmt.Errorf("publish succeeded but review application failed: %w", err)
-		}
-		result.ReviewApplied = true
-		result.ReviewURI = config.ReviewURI
-	}
-
-	return result, nil
+	return p.applyOptionalReview(ctx, config, result)
 }
 
 func (p *ThreeOSProvider) deployUpdateInfo(ctx context.Context, config provider.DeployConfig) (*provider.DeployResult, error) {
@@ -202,47 +172,23 @@ func (p *ThreeOSProvider) deployUpdateVersion(ctx context.Context, config provid
 		return nil, err
 	}
 
-	gameURI := config.GameURI
-	if gameURI == "" {
-		return nil, fmt.Errorf("game URI required for update-version")
-	}
-
 	assets, err := p.uploadAssets(ctx, config)
 	if err != nil {
 		return nil, err
 	}
 
-	packageURL := assetURLByLabel(assets, "package")
-	sqlURL := assetURLByLabel(assets, "sql")
-
-	screenConfig := ScreenConfig{}
-	if config.ScreenConfig != nil {
-		screenConfig = ScreenConfig{
-			ScreenType:  config.ScreenConfig.ScreenType,
-			HalfSupport: config.ScreenConfig.HalfSupport,
-			HalfRatio:   config.ScreenConfig.HalfRatio,
-		}
-	}
-
-	buildConfig := map[string]BuildConfigEntry{}
-	if config.BuildConfig != nil {
-		buildConfig = map[string]BuildConfigEntry{
-			"backend":  {WorkDir: config.BuildConfig.Backend.WorkDir, Cmd: config.BuildConfig.Backend.Cmd},
-			"frontend": {WorkDir: config.BuildConfig.Frontend.WorkDir, Cmd: config.BuildConfig.Frontend.Cmd},
-			"socket":   {WorkDir: config.BuildConfig.Socket.WorkDir, Cmd: config.BuildConfig.Socket.Cmd},
-		}
-	}
+	screenConfig, buildConfig := toAPIConfigs(config)
 
 	gameResp, err := p.client.UpdateWithVersion(ctx, &GameUpdateWithVersionReq{
-		URI:         gameURI,
+		URI:         config.GameURI,
 		Name:        config.GameName,
 		Description: config.GameDescription,
 		Logo:        config.GameLogo,
 		Version: GameVersionCreateReq{
 			Version:      config.Version,
 			ChangeLog:    config.ChangeLog,
-			FileUrl:      packageURL,
-			InitSqlUrl:   sqlURL,
+			FileUrl:      assetURLByLabel(assets, "package"),
+			InitSqlUrl:   assetURLByLabel(assets, "sql"),
 			BuildConfig:  buildConfig,
 			ScreenConfig: screenConfig,
 		},
@@ -260,17 +206,7 @@ func (p *ThreeOSProvider) deployUpdateVersion(ctx context.Context, config provid
 		Assets:   assets,
 	}
 
-	if config.ReviewURI != "" {
-		if err := p.client.ApplyReview(ctx, config.ReviewURI); err != nil {
-			result.ReviewApplied = false
-			result.ReviewURI = config.ReviewURI
-			return result, fmt.Errorf("publish succeeded but review application failed: %w", err)
-		}
-		result.ReviewApplied = true
-		result.ReviewURI = config.ReviewURI
-	}
-
-	return result, nil
+	return p.applyOptionalReview(ctx, config, result)
 }
 
 func (p *ThreeOSProvider) deployApplyReview(ctx context.Context, config provider.DeployConfig) (*provider.DeployResult, error) {
@@ -278,23 +214,19 @@ func (p *ThreeOSProvider) deployApplyReview(ctx context.Context, config provider
 		return nil, err
 	}
 
-	if config.ReviewURI == "" {
-		return nil, fmt.Errorf("review URI required for apply-review")
-	}
-
 	if err := p.client.ApplyReview(ctx, config.ReviewURI); err != nil {
 		return &provider.DeployResult{
-			Provider:     "3os",
-			Mode:         provider.PublishModeApplyReview,
-			ReviewURI:    config.ReviewURI,
+			Provider:      "3os",
+			Mode:          provider.PublishModeApplyReview,
+			ReviewURI:     config.ReviewURI,
 			ReviewApplied: false,
 		}, fmt.Errorf("apply review failed: %w", err)
 	}
 
 	return &provider.DeployResult{
-		Provider:     "3os",
-		Mode:         provider.PublishModeApplyReview,
-		ReviewURI:    config.ReviewURI,
+		Provider:      "3os",
+		Mode:          provider.PublishModeApplyReview,
+		ReviewURI:     config.ReviewURI,
 		ReviewApplied: true,
 	}, nil
 }
@@ -332,6 +264,42 @@ func (p *ThreeOSProvider) uploadAssets(ctx context.Context, config provider.Depl
 	}
 
 	return assets, nil
+}
+
+func (p *ThreeOSProvider) applyOptionalReview(ctx context.Context, config provider.DeployConfig, result *provider.DeployResult) (*provider.DeployResult, error) {
+	if config.ReviewURI == "" {
+		return result, nil
+	}
+	if err := p.client.ApplyReview(ctx, config.ReviewURI); err != nil {
+		result.ReviewApplied = false
+		result.ReviewURI = config.ReviewURI
+		return result, fmt.Errorf("publish succeeded but review application failed: %w", err)
+	}
+	result.ReviewApplied = true
+	result.ReviewURI = config.ReviewURI
+	return result, nil
+}
+
+func toAPIConfigs(config provider.DeployConfig) (ScreenConfig, map[string]BuildConfigEntry) {
+	screenConfig := ScreenConfig{}
+	if config.ScreenConfig != nil {
+		screenConfig = ScreenConfig{
+			ScreenType:  config.ScreenConfig.ScreenType,
+			HalfSupport: config.ScreenConfig.HalfSupport,
+			HalfRatio:   config.ScreenConfig.HalfRatio,
+		}
+	}
+
+	buildConfig := map[string]BuildConfigEntry{}
+	if config.BuildConfig != nil {
+		buildConfig = map[string]BuildConfigEntry{
+			"backend":  {WorkDir: config.BuildConfig.Backend.WorkDir, Cmd: config.BuildConfig.Backend.Cmd},
+			"frontend": {WorkDir: config.BuildConfig.Frontend.WorkDir, Cmd: config.BuildConfig.Frontend.Cmd},
+			"socket":   {WorkDir: config.BuildConfig.Socket.WorkDir, Cmd: config.BuildConfig.Socket.Cmd},
+		}
+	}
+
+	return screenConfig, buildConfig
 }
 
 func assetURLByLabel(assets []provider.UploadedAsset, label string) string {

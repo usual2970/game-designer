@@ -8,7 +8,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"strconv"
 )
 
 type Client struct {
@@ -90,7 +89,7 @@ func (c *Client) UpdateWithVersion(ctx context.Context, req *GameUpdateWithVersi
 
 func (c *Client) ApplyReview(ctx context.Context, reviewURI string) error {
 	reqBody := GameReviewApplyReq{URI: reviewURI}
-	return c.doPostNoData(ctx, "/developer/v1/game/apply-review", reqBody)
+	return c.doPost(ctx, "/developer/v1/game/apply-review", reqBody, nil, true)
 }
 
 func (c *Client) doGet(ctx context.Context, path string, result interface{}) error {
@@ -122,37 +121,6 @@ func (c *Client) doPost(ctx context.Context, path string, body interface{}, resu
 	return c.doRequest(req, path, result)
 }
 
-func (c *Client) doPostNoData(ctx context.Context, path string, body interface{}) error {
-	bodyBytes, err := json.Marshal(body)
-	if err != nil {
-		return &ClientError{Endpoint: path, Message: fmt.Sprintf("marshal body: %v", err)}
-	}
-	reqURL := c.baseURL + path
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, reqURL, bytes.NewReader(bodyBytes))
-	if err != nil {
-		return &ClientError{Endpoint: path, Message: fmt.Sprintf("build request: %v", err)}
-	}
-	req.Header.Set("Content-Type", "application/json")
-	if c.token != "" {
-		req.Header.Set("Authorization", "Bearer "+c.token)
-	}
-
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return &ClientError{Endpoint: path, Message: fmt.Sprintf("request failed: %v", err)}
-	}
-	defer resp.Body.Close()
-
-	var apiResp APIResponse
-	if err := json.NewDecoder(resp.Body).Decode(&apiResp); err != nil {
-		return &ClientError{Endpoint: path, Message: fmt.Sprintf("decode response: %v", err)}
-	}
-	if !apiResp.IsSuccess() {
-		return &ClientError{Endpoint: path, Message: apiResp.Message, Code: apiResp.Code}
-	}
-	return nil
-}
-
 func (c *Client) doPut(ctx context.Context, path string, body interface{}, result interface{}) error {
 	bodyBytes, err := json.Marshal(body)
 	if err != nil {
@@ -177,7 +145,7 @@ func (c *Client) doRequest(req *http.Request, endpoint string, result interface{
 	}
 	defer resp.Body.Close()
 
-	bodyBytes, err := io.ReadAll(resp.Body)
+	bodyBytes, err := io.ReadAll(io.LimitReader(resp.Body, 10<<20))
 	if err != nil {
 		return &ClientError{Endpoint: endpoint, Message: fmt.Sprintf("read response: %v", err)}
 	}
@@ -197,28 +165,6 @@ func (c *Client) doRequest(req *http.Request, endpoint string, result interface{
 	return nil
 }
 
-// ListGamesByPage is a helper that returns games as a simple map for result details.
-func ListGamesAsMap(resp *GameListResp) []map[string]string {
-	games := make([]map[string]string, 0, len(resp.Data))
-	for _, g := range resp.Data {
-		games = append(games, map[string]string{
-			"uri":  g.URI,
-			"name": g.Name,
-		})
-	}
-	return games
-}
-
-// BuildObjectURL constructs the public URL from host, dir, and object key.
 func BuildObjectURL(host, dir, filename string) string {
 	return host + "/" + dir + filename
-}
-
-// ParseIntOrDefault parses s as int, returning def on failure.
-func ParseIntOrDefault(s string, def int) int {
-	n, err := strconv.Atoi(s)
-	if err != nil {
-		return def
-	}
-	return n
 }
