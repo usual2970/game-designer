@@ -16,9 +16,11 @@ Connect the Game Designer TypeScript SDK to an H5 slot machine game project.
 
 ## When to Apply
 
-- The user asks to add backend/SDK integration to an H5 game
+- The user asks to add backend/SDK integration to an existing or custom H5 game project
 - The user references connecting the game to the server
-- The SDK needs to be wired into an existing H5 project
+- The SDK needs to be wired into an H5 project that was not created from the bundled Phaser template
+
+> New frontends created with `gd-create-h5-game` already include SDK integration through the bundled Phaser template and do not need this skill.
 
 ## What This Skill Does
 

@@ -309,6 +309,24 @@ check "gd-deploy-server directory absent from skills" python3 -c "
 from pathlib import Path
 assert not Path('$ROOT_DIR/skills/gd-deploy-server').exists(), 'skills/gd-deploy-server/ directory must not exist'
 "
+# 14. Skill boundary: template creation must not route through gd-connect-sdk
+echo ""
+echo "14. Skill boundary"
+check "gd-create-h5-game does not route SDK through gd-connect-sdk" python3 -c "
+from pathlib import Path
+text = Path('$ROOT_DIR/skills/gd-create-h5-game/SKILL.md').read_text()
+# The template-creation skill must not instruct agents to run gd-connect-sdk
+assert 'gd-connect-sdk' not in text, 'gd-create-h5-game must not reference gd-connect-sdk — the template is SDK-ready'
+"
+check "gd-connect-sdk scopes itself to existing/custom projects" python3 -c "
+from pathlib import Path
+text = Path('$ROOT_DIR/skills/gd-connect-sdk/SKILL.md').read_text()
+lower = text.lower()
+# The SDK connection skill must name existing or custom projects as its audience
+assert 'existing' in lower or 'custom' in lower, 'gd-connect-sdk must scope itself to existing or custom H5 projects'
+assert 'gd-create-h5-game' in text, 'gd-connect-sdk must reference gd-create-h5-game as the template path that already includes SDK integration'
+"
+
 check "gd-deploy-game documents three-surface buildConfig" python3 -c "
 import re
 from pathlib import Path

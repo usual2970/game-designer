@@ -28,8 +28,8 @@ Create or attach a Phaser + TypeScript + Vite H5 frontend project from the plugi
 2. Locate the frontend template at `${CLAUDE_PLUGIN_ROOT}/frontend-template-phaser/` (the plugin's bundled asset)
 3. Copy the template into the current target project as `frontend/`
 4. Wire the SDK dependency:
+   - The template already imports `@game-designer/sdk` — no separate SDK wiring step is needed
    - If the consuming project has the SDK available locally, update `frontend/package.json` to point `"@game-designer/sdk"` at the correct relative path
-   - If the SDK is not available locally, run `gd-connect-sdk` first to wire it into the project
    - Ensure `node_modules/@game-designer/sdk` resolves correctly after `npm install`
 5. Adjust `tsconfig.json` paths if needed — the template's `paths` and `include` entries reference `../../sdk-js/src`, which must be updated to match the consuming project's SDK location
 6. Install dependencies: `cd frontend && npm install`
