@@ -12,15 +12,69 @@ Provider Interface
 └── HealthCheck() — Verify endpoint health
 ```
 
-## Current Provider
+## Available Providers
 
-The MVP ships with a **fake provider** for testing:
+### Fake Provider (Offline/Dry Run)
 
 ```bash
 game-designer deploy --provider fake
 ```
 
-The fake provider simulates deploy, status, and health checks without touching a real PaaS.
+The fake provider simulates deploy, status, and health checks without touching a real PaaS. Use for:
+- Local testing and smoke checks
+- Verifying CLI flag parsing
+- Agent dry-run validation
+
+### 3os Provider (Production)
+
+```bash
+game-designer deploy --provider 3os --mode create \
+  --identifier $GD_IDENTIFIER --password $GD_PASSWORD \
+  --game-name "My Game" --package-path ./game.zip --version 1.0.0
+```
+
+The 3os provider publishes games through the production PaaS API. It supports five modes:
+
+| Mode | Description |
+|------|-------------|
+| `create` | Create a new game with an initial version |
+| `update-info` | Update game base information |
+| `update-version` | Publish a new version of an existing game |
+| `list` | List developer's games (paginated) |
+| `apply-review` | Submit a game for review |
+
+#### Production Workflow
+
+1. **Auth** — Login with identifier/password, receive `accessToken`
+2. **Upload** — Get OSS policy token, upload package (and optional SQL) via POST V4
+3. **Publish** — Call game create/update API with uploaded URLs
+4. **Review** — Optionally submit the game for review
+
+#### Configuration
+
+| Setting | Flag | Env Var | Default |
+|---------|------|---------|---------|
+| API base URL | `--base-url` | `GD_BASE_URL` | `https://api.3sdk.yu3.co` |
+| Identifier | `--identifier` | `GD_IDENTIFIER` | — |
+| Password | `--password` | `GD_PASSWORD` | — |
+
+Credentials should be set via environment variables, not command-line flags, to avoid shell history exposure.
+
+#### API Dependencies
+
+The 3os provider calls these production endpoints:
+
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/common/v1/auth/login` | POST | Password login |
+| `/developer/v1/file/policy-token` | GET | OSS upload credentials |
+| `/developer/v1/game` | GET | List developer games |
+| `/developer/v1/game/create-with-version` | POST | Create game + version |
+| `/developer/v1/game/:uri` | PUT | Update game info |
+| `/developer/v1/game/update-with-version` | POST | Add version to game |
+| `/developer/v1/game/apply-review` | POST | Submit for review |
+
+All authenticated endpoints require `Authorization: Bearer <token>`. The backend returns `code: 0` for success and non-zero for application errors.
 
 ## Adding a New Provider
 
@@ -48,14 +102,6 @@ func (p *MyPaaSProvider) HealthCheck(ctx context.Context, url string) (*provider
 2. Register in `cli/internal/commands/commands.go` `resolveProvider()`
 
 3. Add tests with a mock PaaS client
-
-## Configuration
-
-Provider-specific configuration can be passed via:
-
-- CLI flags (`--provider mypaas`)
-- Environment variables (e.g., `PAAS_API_KEY`)
-- Config file (future)
 
 ## Structured Output
 

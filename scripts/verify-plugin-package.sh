@@ -270,6 +270,28 @@ for path in active_files:
 assert not bad, f'Stale references: {bad}'
 "
 
+# 12. Deploy docs must not claim fake is the only provider
+echo ""
+echo "12. Production provider documentation"
+check "Deploy docs reference production provider" python3 -c "
+from pathlib import Path
+text = Path('$ROOT_DIR/docs/deployment/paas-provider.md').read_text()
+assert '3os' in text, 'paas-provider.md must reference the 3os production provider'
+assert 'fake' in text, 'paas-provider.md should still document the fake provider'
+"
+check "CLI README documents production provider" python3 -c "
+from pathlib import Path
+text = Path('$ROOT_DIR/cli/README.md').read_text()
+assert '3os' in text, 'cli/README.md must document the 3os provider'
+assert 'fake' in text, 'cli/README.md must still document the fake provider'
+"
+check "Deploy skill documents both providers" python3 -c "
+from pathlib import Path
+text = Path('$ROOT_DIR/skills/gd-deploy-server/SKILL.md').read_text()
+assert '3os' in text, 'gd-deploy-server skill must reference 3os provider'
+assert 'fake' in text, 'gd-deploy-server skill must still reference fake provider'
+"
+
 # Summary
 echo ""
 echo "=== Results ==="

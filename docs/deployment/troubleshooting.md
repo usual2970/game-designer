@@ -98,24 +98,76 @@ cd server-template && GOWORK=off go test ./... -v
 
 ## Missing PaaS Configuration
 
-**Symptoms:** CLI exits with `PREFLIGHT_FAILED`, deploy fails immediately.
+**Symptoms:** CLI exits with `PREFLIGHT_FAILED` or `CONFIG_ERROR`, deploy fails immediately.
 
 **Fix:**
 1. Run `game-designer preflight --server-path .` to see which checks fail
-2. Ensure all required flags are provided (`--app-name`, `--provider`)
-3. Check environment variables for provider-specific config
+2. For production: set `GD_IDENTIFIER` and `GD_PASSWORD` environment variables
+3. Check that required mode-specific flags are provided (e.g., `--package-path` for create)
 
 ## Deploy Failure
 
-**Symptoms:** CLI exits non-zero, `DEPLOY_FAILED` or `HEALTH_CHECK_FAILED` code.
+**Symptoms:** CLI exits non-zero with a structured error code.
 
 **Diagnosis:**
-- Read the structured JSON output for the specific failure
-- Check provider logs for the error details
+- Read the structured JSON output for the specific failure code
+
+**Recovery by code:**
+
+| Code | Cause | Action |
+|------|-------|--------|
+| `CONFIG_ERROR` | Missing flags or invalid mode | Check required flags for your mode |
+| `AUTH_FAILED` | Login rejected | Verify `GD_IDENTIFIER` / `GD_PASSWORD` |
+| `LIST_FAILED` | Game list API error | Check auth token and network |
+| `LOOKUP_FAILED` | Game lookup ambiguous | Use explicit `--game-uri` instead of name lookup |
+| `UPLOAD_FAILED` | OSS upload rejected | Check package file exists and policy token is valid |
+| `PUBLISH_FAILED` | Create/update API rejected | Check game payload, version format, and game state |
+| `REVIEW_FAILED` | Review application rejected | Verify review URI and that game has a deployable version |
+| `PARTIAL_SUCCESS` | Publish OK, review failed | Game is published. Retry review with `--mode apply-review` |
+| `DEPLOY_FAILED` | Generic deploy error | Check full error message for details |
+| `HEALTH_CHECK_FAILED` | Service deployed but unhealthy | Check server logs at the deployed URL |
+
+## Production Auth Issues
+
+**Symptoms:** `AUTH_FAILED` immediately after deploy starts.
+
+**Common causes:**
+- Wrong identifier or password
+- Account not registered as developer
+- Account suspended
 
 **Fix:**
-- `DEPLOY_FAILED`: Check PaaS credentials and provider configuration
-- `HEALTH_CHECK_FAILED`: The service deployed but isn't healthy — check server logs
+1. Verify credentials by calling the auth API directly:
+   ```bash
+   curl -X POST https://api.3sdk.yu3.co/common/v1/auth/login \
+     -H "Content-Type: application/json" \
+     -d '{"identifier":"<email>","type":"password","data":"<password>"}'
+   ```
+2. Ensure the response contains `accessToken`
+3. If `code` is non-zero, check the error message
+
+## Upload Issues
+
+**Symptoms:** `UPLOAD_FAILED` after successful auth.
+
+**Common causes:**
+- Package file not found at `--package-path`
+- Policy token expired (tokens are short-lived)
+- OSS rejected the upload (size limit, permission)
+
+**Fix:**
+1. Verify the file exists: `ls -la <package-path>`
+2. For SQL files, note that `--sql-path` is optional
+3. Re-run the deploy command (gets a fresh policy token)
+
+## Partial Publish/Review Failure
+
+**Symptoms:** Game was created or updated but review submission failed.
+
+**Recovery:**
+1. The game data is saved — no need to re-create
+2. Run `--mode list` to find the game and its review URI
+3. Use `--mode apply-review --review-uri <uri>` to retry review submission
 
 ## Verification Failure
 
