@@ -4,14 +4,15 @@ How to install the Game Designer plugin for Claude Code and Codex, verify the in
 
 ## Overview
 
-The Game Designer repository is an installable code-agent plugin. The repository root is the plugin root — it contains host manifests, shared skills, and all bundled assets needed to scaffold and deploy H5 slot machine game backends.
+The Game Designer repository is an installable code-agent plugin. The repository root is the plugin root — it contains host manifests, shared skills, and all bundled assets needed to create browser-playable H5 games, scaffold backends, and deploy.
 
 ```
 game-designer-backend/           <- Install from here (the plugin root)
 ├── .claude-plugin/plugin.json   <- Claude Code manifest
 ├── .codex-plugin/plugin.json    <- Codex manifest
-├── skills/                      <- Six shared skills
+├── skills/                      <- Twelve shared skills
 ├── server-template/             <- Go server template (slot machine with virtual credits)
+├── frontend-template-phaser/    <- Phaser + TypeScript + Vite H5 frontend template
 ├── cli/                         <- Go deploy CLI source
 ├── sdk-js/                      <- TypeScript SDK
 ├── contracts/                   <- OpenAPI contract
@@ -70,7 +71,7 @@ claude plugin install game-designer@game-designer-marketplace
 
 After installing, verify the plugin is working:
 
-1. List available skills — the agent should see six Game Designer skills
+1. List available skills — the agent should see twelve Game Designer skills
 2. Build the deploy CLI — ask the agent to run `gd-setup-cli`
 3. Run package validation:
    ```bash

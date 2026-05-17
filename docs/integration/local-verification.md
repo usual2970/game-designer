@@ -61,3 +61,18 @@ The slot loop checks (steps 7-8) are skipped if the server is not running. This 
 - **Contract validation fails**: Run `cd contracts && npm run validate` to see details
 - **Server build fails**: Check Go version (1.24+) and run `GOWORK=off go build ./...` in `server-template/`
 - **SDK build fails**: Run `cd sdk-js && npm run build` for TypeScript errors
+
+## Frontend Verification
+
+For Phaser H5 frontend projects created with `gd-create-h5-game`, run these checks in the `frontend/` directory:
+
+```bash
+cd frontend
+npx tsc --noEmit    # TypeScript check
+npm test            # Unit tests
+npm run build       # Production build
+```
+
+For browser-level validation, use the `gd-test-h5-game` skill to run through the full frontend verification loop including canvas rendering, controls, asset loading, and mobile viewport checks.
+
+For frontend failures (white screen, asset 404, canvas issues), use the `gd-debug-h5-game` skill to diagnose the category and get targeted fixes.

@@ -12,6 +12,7 @@ Deploy the slot machine game package to the team PaaS using the CLI. Production 
 
 - The deploy CLI built and verified (run `gd-setup-cli` first)
 - Local verification passed (run `gd-prepare-deploy` first)
+- For frontend deployment: frontend packaged via `gd-package-frontend`
 - For production: `GD_IDENTIFIER` and `GD_PASSWORD` environment variables set
 
 ## When to Apply

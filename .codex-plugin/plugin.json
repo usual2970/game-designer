@@ -1,12 +1,12 @@
 {
   "name": "game-designer",
   "version": "0.1.0",
-  "description": "Activity-style H5 game backend scaffolding, SDK integration, and PaaS deployment skills for Codex",
+  "description": "Phaser H5 game frontend, Go backend scaffolding, TypeScript SDK, and PaaS deployment skills for Codex",
   "skills": "./skills/",
   "interface": {
     "displayName": "Game Designer",
-    "shortDescription": "H5 game backend scaffolding and deployment",
-    "longDescription": "Game Designer helps code agents connect an activity-style H5 game to a Go backend template, TypeScript SDK, and deploy CLI.",
+    "shortDescription": "H5 game frontend and backend scaffolding, SDK integration, and deployment",
+    "longDescription": "Game Designer helps code agents create browser-playable Phaser H5 games, connect them to a Go backend template, TypeScript SDK, and deploy via CLI.",
     "developerName": "Game Designer Team",
     "category": "Coding",
     "capabilities": [
@@ -17,7 +17,8 @@
     "defaultPrompt": [
       "$gd-setup-cli",
       "$gd-create-server",
-      "$gd-connect-sdk"
+      "$gd-connect-sdk",
+      "$gd-create-h5-game"
     ],
     "screenshots": []
   }

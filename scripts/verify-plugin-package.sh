@@ -125,7 +125,7 @@ if [ -d "$SKILLS_DIR" ]; then
   done
 fi
 
-check "At least 6 skills found (got $skill_count)" test "$skill_count" -ge 6
+check "At least 12 skills found (got $skill_count)" test "$skill_count" -ge 12
 
 # 4. Duplicate skill names
 echo ""
@@ -143,7 +143,7 @@ fi
 # 5. Bundled assets
 echo ""
 echo "5. Bundled assets"
-for dir in server-template cli sdk-js contracts examples scripts; do
+for dir in server-template frontend-template-phaser cli sdk-js contracts examples scripts; do
   check "$dir/ exists at plugin root" test -d "$ROOT_DIR/$dir"
 done
 

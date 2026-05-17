@@ -103,6 +103,18 @@ func (p *MyPaaSProvider) HealthCheck(ctx context.Context, url string) (*provider
 
 3. Add tests with a mock PaaS client
 
+## Frontend Packaging
+
+Before deploying the frontend surface, the Phaser H5 build output must be packaged:
+
+```bash
+cd frontend && npm run build
+```
+
+The resulting `dist/` directory contains `index.html` and bundled static assets. Use `gd-package-frontend` to verify the build is ready for deployment, then pass the directory via `--frontend-dir` to the deploy command.
+
+For details on the frontend build and packaging workflow, see the `gd-package-frontend` and `gd-create-h5-game` skills.
+
 ## Structured Output
 
 All providers must return results through the `reporting.Result` type for consistent agent-readable output:

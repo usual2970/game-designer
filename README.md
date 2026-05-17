@@ -1,10 +1,10 @@
 # Game Designer Server Plugin
 
-A contract-first Go backend template, TypeScript H5 SDK, Go deploy CLI, and agent-facing plugin skills that let a code agent connect and deploy a slot-machine H5 game backend with virtual credits and server-authoritative spin resolution.
+A contract-first Go backend template, Phaser H5 frontend template, TypeScript H5 SDK, Go deploy CLI, and agent-facing plugin skills that let a code agent create, connect, and deploy a slot-machine H5 game with virtual credits and server-authoritative spin resolution.
 
 ## Install as a Code Agent Plugin
 
-This repository is an installable plugin for Claude Code and Codex. Install from the repository root to get all six skills plus bundled assets.
+This repository is an installable plugin for Claude Code and Codex. Install from the repository root to get all twelve skills plus bundled assets.
 
 ```bash
 # Claude Code (quick dev testing)
@@ -26,7 +26,16 @@ GOWORK=off go run ./cmd/server
 # Server starts on :8080
 ```
 
-### 2. Use the SDK in an H5 slot game
+### 2. Create a Phaser H5 frontend
+
+```bash
+cd frontend-template-phaser
+npm install
+npm run dev
+# Frontend dev server starts on :3000
+```
+
+### 3. Use the SDK in an H5 slot game
 
 ```typescript
 import { GameDesignerClient } from "@game-designer/sdk";
@@ -56,13 +65,13 @@ const history = await client.getSpinHistory({ limit: 20 });
 const leaderboard = await client.getSlotLeaderboard({ limit: 10 });
 ```
 
-### 3. Verify locally
+### 4. Verify locally
 
 ```bash
 ./scripts/verify-local.sh
 ```
 
-### 4. Deploy
+### 5. Deploy
 
 ```bash
 cd cli
@@ -72,7 +81,7 @@ GOWORK=off go run ./cmd/game-designer deploy \
   --provider fake
 ```
 
-### 5. Verify deployed
+### 6. Verify deployed
 
 ```bash
 ./scripts/verify-deployed.sh https://my-game.fake.local
@@ -81,14 +90,15 @@ GOWORK=off go run ./cmd/game-designer deploy \
 ## Project Structure
 
 ```
-contracts/          OpenAPI contract (single source of truth)
-server-template/    Go slot machine backend template
-sdk-js/             TypeScript H5 SDK
-cli/                Go deploy CLI
-skills/             Agent-facing plugin skills
-examples/           Example H5 slot machine game
-scripts/            Verification scripts
-docs/               Documentation
+contracts/                OpenAPI contract (single source of truth)
+server-template/          Go slot machine backend template
+frontend-template-phaser/ Phaser + TypeScript + Vite H5 frontend template
+sdk-js/                   TypeScript H5 SDK
+cli/                      Go deploy CLI
+skills/                   Agent-facing plugin skills
+examples/                 Example H5 slot machine game
+scripts/                  Verification scripts
+docs/                     Documentation
 ```
 
 ## Test
@@ -106,11 +116,16 @@ cd cli && GOWORK=off go test ./... -v
 # Example game
 cd examples/h5-slot-machine && npm test
 
+# Phaser frontend template
+cd frontend-template-phaser && npm test
+
 # All checks
 ./scripts/verify-local.sh
 ```
 
 ## Golden Path
+
+### Backend + SDK (existing)
 
 0. **Setup CLI** — Use `gd-setup-cli` skill to build the deploy CLI (first use only)
 1. **Create** — Use `gd-create-server` skill to scaffold the Go backend into `server/`
@@ -118,6 +133,16 @@ cd examples/h5-slot-machine && npm test
 3. **Verify** — Run `./scripts/verify-local.sh`
 4. **Deploy** — Use `gd-deploy-game` skill to publish the game package
 5. **Verify deployed** — Run `./scripts/verify-deployed.sh <url>`
+
+### Frontend + Gameplay (new)
+
+1. **Create frontend** — Use `gd-create-h5-game` skill to scaffold a Phaser H5 frontend
+2. **Add gameplay** — Use `gd-create-slot-game` skill to add slot-machine gameplay
+3. **Theme** — Use `gd-theme-h5-game` skill to customize the game appearance
+4. **Test** — Use `gd-test-h5-game` skill to verify the frontend
+5. **Debug** — Use `gd-debug-h5-game` skill to diagnose frontend issues
+6. **Package** — Use `gd-package-frontend` skill to prepare for deployment
+7. **Deploy** — Use `gd-deploy-game` skill with `--frontend-dir` to publish
 
 ## Capabilities
 
@@ -130,6 +155,8 @@ cd examples/h5-slot-machine && npm test
 | Spin | Server-authoritative spin resolution |
 | Spin History | Past spin outcomes |
 | Leaderboard | Slot leaderboard ranked by highest balance |
+| Phaser Frontend | Browser-playable H5 slot machine game |
+| Theme | Data-driven game customization |
 
 ## Documentation
 

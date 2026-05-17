@@ -52,3 +52,23 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 ```
+
+## Frontend Verification
+
+For deployed games with a Phaser H5 frontend, also verify:
+
+1. **Frontend URL** — The deployed `index.html` loads without errors
+2. **Asset loading** — All bundled JavaScript and CSS files load (no 404s)
+3. **Canvas rendering** — The Phaser game canvas is non-blank
+4. **SDK connectivity** — The frontend can reach the backend API from the deployed origin
+
+Use the `gd-test-h5-game` skill for browser-level checks and `gd-debug-h5-game` for frontend-specific failures.
+
+```bash
+# After deploy
+./scripts/verify-deployed.sh "$DEPLOYED_URL"
+if [ $? -ne 0 ]; then
+  echo "Deployed verification failed — see errors above"
+  exit 1
+fi
+```
