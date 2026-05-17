@@ -2,6 +2,7 @@ package reporting
 
 import (
 	"encoding/json"
+	"strings"
 	"testing"
 )
 
@@ -38,5 +39,51 @@ func TestResult_ToJSON(t *testing.T) {
 	}
 	if !parsed.Success {
 		t.Error("expected success=true in JSON output")
+	}
+}
+
+func TestAllResultCodes(t *testing.T) {
+	codes := []ResultCode{
+		CodeSuccess, CodePreflightFailed, CodeDeployFailed,
+		CodeHealthCheckFail, CodeInternalError, CodeConfigError,
+		CodeAuthFailed, CodeListFailed, CodeLookupFailed,
+		CodeUploadFailed, CodePublishFailed, CodeReviewFailed,
+		CodePartialSuccess,
+	}
+	for _, code := range codes {
+		r := FailResult(code, "test", nil)
+		if r.Code != code {
+			t.Errorf("expected code=%s, got %s", code, r.Code)
+		}
+	}
+}
+
+func TestResultJSON_NoSensitiveData(t *testing.T) {
+	r := SuccessResult("deployed", map[string]string{
+		"gameUri": "game123",
+		"url":     "https://game.example.com",
+	})
+	jsonStr := r.ToJSON()
+	if strings.Contains(jsonStr, "password") {
+		t.Error("JSON should not contain 'password'")
+	}
+	if strings.Contains(jsonStr, "token") {
+		t.Error("JSON should not contain 'token'")
+	}
+}
+
+func TestFailResultJSON_Parsable(t *testing.T) {
+	r := FailResult(CodeAuthFailed, "auth failed: invalid credentials", map[string]string{
+		"endpoint": "/common/v1/auth/login",
+	})
+	var parsed Result
+	if err := json.Unmarshal([]byte(r.ToJSON()), &parsed); err != nil {
+		t.Fatalf("invalid JSON: %v", err)
+	}
+	if parsed.Success {
+		t.Error("expected success=false")
+	}
+	if parsed.Code != "AUTH_FAILED" {
+		t.Errorf("expected AUTH_FAILED, got %s", parsed.Code)
 	}
 }

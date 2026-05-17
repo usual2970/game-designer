@@ -2,6 +2,9 @@ package commands
 
 import (
 	"encoding/json"
+	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -9,6 +12,7 @@ import (
 	"testing"
 
 	"github.com/example/game-designer-cli/internal/reporting"
+	"github.com/example/game-designer-cli/internal/provider/threeos"
 )
 
 func TestVersionCmd(t *testing.T) {
@@ -283,5 +287,134 @@ func TestBuildDeployConfig_NoScreenOrBuildWhenEmpty(t *testing.T) {
 	}
 	if cfg.BuildConfig != nil {
 		t.Error("expected BuildConfig to be nil when no build flags set")
+	}
+}
+
+func TestDeployCmd_3osListMode_WithFakeServer(t *testing.T) {
+	apiServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch r.URL.Path {
+		case "/common/v1/auth/login":
+			resp := threeos.APIResponse{Code: 0, Message: "success"}
+			data, _ := json.Marshal(threeos.AuthLoginResp{AccessToken: "test-token"})
+			resp.Data = data
+			json.NewEncoder(w).Encode(resp)
+		case "/developer/v1/game":
+			resp := threeos.APIResponse{Code: 0, Message: "success"}
+			data, _ := json.Marshal(threeos.GameListResp{
+				Page: 1, PageSize: 10, TotalCount: 1,
+				Data: []threeos.GameInfoResp{{URI: "test-game", Name: "Test"}},
+			})
+			resp.Data = data
+			json.NewEncoder(w).Encode(resp)
+		}
+	}))
+	defer apiServer.Close()
+
+	tmpDir := t.TempDir()
+	os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte("module example.com/test\ngo 1.24\n"), 0644)
+	os.WriteFile(filepath.Join(tmpDir, "main.go"), []byte("package main\nfunc main() {}\n"), 0644)
+
+	const envKey = "GD_TEST_3OS_LIST"
+	if os.Getenv(envKey) == "1" {
+		root := NewRootCmd()
+		root.SetArgs([]string{
+			"deploy",
+			"--server-path", tmpDir,
+			"--provider", "3os",
+			"--base-url", apiServer.URL,
+			"--identifier", "test@example.com",
+			"--password", "testpass",
+			"--mode", "list",
+		})
+		root.Execute()
+		return
+	}
+
+	cmd := exec.Command(os.Args[0], "-test.run="+t.Name())
+	cmd.Env = append(os.Environ(), envKey+"=1")
+	output, _ := cmd.CombinedOutput()
+
+	if !strings.Contains(string(output), "SUCCESS") {
+		t.Errorf("expected SUCCESS for 3os list mode, got: %s", string(output))
+	}
+	if !strings.Contains(string(output), "gameList") {
+		t.Errorf("expected gameList in output, got: %s", string(output))
+	}
+	// Verify JSON is parseable
+	lines := strings.Split(strings.TrimSpace(string(output)), "\n")
+	var lastLine string
+	for i := len(lines) - 1; i >= 0; i-- {
+		if strings.HasPrefix(strings.TrimSpace(lines[i]), "{") {
+			lastLine = lines[i]
+			break
+		}
+	}
+	var result reporting.Result
+	if err := json.Unmarshal([]byte(lastLine), &result); err != nil {
+		t.Fatalf("invalid JSON output: %v", err)
+	}
+	if !result.Success {
+		t.Error("expected success=true in 3os list result")
+	}
+}
+
+func TestDeployCmd_3osAuthFailure_ErrorCode(t *testing.T) {
+	apiServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		resp := threeos.APIResponse{Code: 100, Message: "invalid credentials"}
+		json.NewEncoder(w).Encode(resp)
+	}))
+	defer apiServer.Close()
+
+	tmpDir := t.TempDir()
+	os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte("module example.com/test\ngo 1.24\n"), 0644)
+	os.WriteFile(filepath.Join(tmpDir, "main.go"), []byte("package main\nfunc main() {}\n"), 0644)
+
+	const envKey = "GD_TEST_3OS_AUTH_FAIL"
+	if os.Getenv(envKey) == "1" {
+		root := NewRootCmd()
+		root.SetArgs([]string{
+			"deploy",
+			"--server-path", tmpDir,
+			"--provider", "3os",
+			"--base-url", apiServer.URL,
+			"--identifier", "bad@example.com",
+			"--password", "wrong",
+			"--mode", "list",
+		})
+		root.Execute()
+		return
+	}
+
+	cmd := exec.Command(os.Args[0], "-test.run="+t.Name())
+	cmd.Env = append(os.Environ(), envKey+"=1")
+	output, _ := cmd.CombinedOutput()
+
+	if !strings.Contains(string(output), "AUTH_FAILED") {
+		t.Errorf("expected AUTH_FAILED for auth failure, got: %s", string(output))
+	}
+}
+
+func TestClassifyDeployError(t *testing.T) {
+	tests := []struct {
+		errMsg   string
+		expected reporting.ResultCode
+	}{
+		{"auth failed: bad credentials", reporting.CodeAuthFailed},
+		{"list games failed: timeout", reporting.CodeListFailed},
+		{"lookup: multiple matches", reporting.CodeLookupFailed},
+		{"upload: file too large", reporting.CodeUploadFailed},
+		{"get upload policy failed: timeout", reporting.CodeUploadFailed},
+		{"review application failed: state", reporting.CodeReviewFailed},
+		{"create game failed: conflict", reporting.CodePublishFailed},
+		{"update version failed: not found", reporting.CodePublishFailed},
+		{"something else went wrong", reporting.CodeDeployFailed},
+	}
+	for _, tt := range tests {
+		code := classifyDeployError(fmt.Errorf("%s", tt.errMsg))
+		if code != tt.expected {
+			t.Errorf("classifyDeployError(%q) = %s, want %s", tt.errMsg, code, tt.expected)
+		}
 	}
 }

@@ -3,10 +3,13 @@ package commands
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"os"
+	"strings"
 
 	"github.com/example/game-designer-cli/internal/preflight"
 	"github.com/example/game-designer-cli/internal/provider"
+	"github.com/example/game-designer-cli/internal/provider/threeos"
 	"github.com/example/game-designer-cli/internal/reporting"
 	"github.com/spf13/cobra"
 )
@@ -116,7 +119,7 @@ func newDeployCmd() *cobra.Command {
 				}
 			}
 
-			prov, err := resolveProvider(pFlag)
+			prov, err := resolveProvider(pFlag, deployConfig)
 			if err != nil {
 				r := reporting.FailResult(reporting.CodeConfigError, err.Error(), nil)
 				fmt.Println(r.ToJSON())
@@ -136,7 +139,8 @@ func newDeployCmd() *cobra.Command {
 			// Deploy
 			deployResult, err := prov.Deploy(ctx, deployConfig)
 			if err != nil {
-				r := reporting.FailResult(reporting.CodeDeployFailed, fmt.Sprintf("Deploy failed: %v", err), nil)
+				code := classifyDeployError(err)
+				r := reporting.FailResult(code, fmt.Sprintf("Deploy failed: %v", err), sanitizeDeployDetails(deployResult))
 				fmt.Println(r.ToJSON())
 				os.Exit(1)
 			}
@@ -212,15 +216,44 @@ func newDeployCmd() *cobra.Command {
 	return cmd
 }
 
-func resolveProvider(name string) (provider.Provider, error) {
+func resolveProvider(name string, cfg provider.DeployConfig) (provider.Provider, error) {
 	switch name {
 	case "fake":
 		return &fakeProviderAdapter{}, nil
 	case "3os":
-		return nil, fmt.Errorf("production provider not yet implemented")
+		client := threeos.NewClient(http.DefaultClient, cfg.BaseURL)
+		uploader := threeos.NewOSSUploader(http.DefaultClient)
+		return threeos.NewProvider(client, uploader), nil
 	default:
 		return nil, fmt.Errorf("unsupported provider: %s (accepted: fake, 3os)", name)
 	}
+}
+
+func classifyDeployError(err error) reporting.ResultCode {
+	msg := err.Error()
+	switch {
+	case strings.Contains(msg, "auth failed"):
+		return reporting.CodeAuthFailed
+	case strings.Contains(msg, "list games failed"):
+		return reporting.CodeListFailed
+	case strings.Contains(msg, "lookup"):
+		return reporting.CodeLookupFailed
+	case strings.Contains(msg, "upload") || strings.Contains(msg, "get upload policy"):
+		return reporting.CodeUploadFailed
+	case strings.Contains(msg, "review"):
+		return reporting.CodeReviewFailed
+	case strings.Contains(msg, "create game") || strings.Contains(msg, "update"):
+		return reporting.CodePublishFailed
+	default:
+		return reporting.CodeDeployFailed
+	}
+}
+
+func sanitizeDeployDetails(result *provider.DeployResult) interface{} {
+	if result == nil {
+		return nil
+	}
+	return result
 }
 
 func buildDeployConfig(opts DeployOptions) provider.DeployConfig {
