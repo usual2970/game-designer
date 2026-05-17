@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2020", "DOM"],
+    "strict": true,
+    "esModuleInterop": true,
+    "outDir": "dist",
+    "rootDir": ".",
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "paths": {
+      "@game-designer/sdk": ["../../sdk-js/src/index.ts"]
+    }
+  },
+  "include": ["src", "../../sdk-js/src"],
+  "exclude": ["node_modules", "dist", "tests"]
+}
