@@ -246,7 +246,7 @@ echo ""
 echo "11. Stale skill name scan"
 check "Active surfaces contain no old skill names" python3 -c "
 from pathlib import Path
-old_names = ['setup-game-designer-cli', 'create-game-server', 'connect-js-sdk', 'deploy-game-server', 'debug-server-integration']
+old_names = ['setup-game-designer-cli', 'create-game-server', 'connect-js-sdk', 'deploy-game-server', 'debug-server-integration', 'gd-deploy-server']
 active_files = [
     Path('$ROOT_DIR/.codex-plugin/plugin.json'),
     Path('$ROOT_DIR/README.md'),
@@ -287,9 +287,39 @@ assert 'fake' in text, 'cli/README.md must still document the fake provider'
 "
 check "Deploy skill documents both providers" python3 -c "
 from pathlib import Path
-text = Path('$ROOT_DIR/skills/gd-deploy-server/SKILL.md').read_text()
-assert '3os' in text, 'gd-deploy-server skill must reference 3os provider'
-assert 'fake' in text, 'gd-deploy-server skill must still reference fake provider'
+text = Path('$ROOT_DIR/skills/gd-deploy-game/SKILL.md').read_text()
+assert '3os' in text, 'gd-deploy-game skill must reference 3os provider'
+assert 'fake' in text, 'gd-deploy-game skill must still reference fake provider'
+"
+
+# 13. Skill contract drift prevention
+echo ""
+echo "13. Skill contract drift"
+check "gd-create-server uses correct source and destination paths" python3 -c "
+from pathlib import Path
+text = Path('$ROOT_DIR/skills/gd-create-server/SKILL.md').read_text()
+assert 'Server path: server/' in text, 'gd-create-server success output must say Server path: server/'
+assert 'server-template/' in text, 'gd-create-server must reference server-template/ as plugin source asset'
+assert 'CLAUDE_PLUGIN_ROOT' in text, 'gd-create-server must reference plugin root for source template'
+for line in text.splitlines():
+    if 'Server path:' in line and 'server-template/' in line:
+        raise AssertionError('gd-create-server success output must not say Server path: server-template/')
+"
+check "gd-deploy-server directory absent from skills" python3 -c "
+from pathlib import Path
+assert not Path('$ROOT_DIR/skills/gd-deploy-server').exists(), 'skills/gd-deploy-server/ directory must not exist'
+"
+check "gd-deploy-game documents three-surface buildConfig" python3 -c "
+import re
+from pathlib import Path
+text = Path('$ROOT_DIR/skills/gd-deploy-game/SKILL.md').read_text()
+for surface in ['backend', 'frontend', 'socket']:
+    assert surface in text.lower(), f'gd-deploy-game must reference {surface} surface'
+assert 'buildConfig' in text, 'gd-deploy-game must explain buildConfig'
+assert 'same binary' in text.lower() or 'different command' in text.lower(), 'gd-deploy-game must explain backend/socket same-service deployment'
+h1 = re.search(r'^# .+$', text, re.MULTILINE)
+assert h1, 'gd-deploy-game must have an H1 heading'
+assert 'game server' not in h1.group().lower(), 'gd-deploy-game H1 must not say game server'
 "
 
 # Summary

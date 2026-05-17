@@ -27,10 +27,11 @@ Run pre-deploy checks and prepare the slot machine game server for deployment.
 1. Verify the deploy CLI binary is available and reports its version
 2. Run preflight checks using the CLI:
    ```bash
-   cd cli && ./game-designer preflight --server-path ../server-template
+   # In a consuming project (after gd-create-server):
+   cd cli && ./game-designer preflight --server-path ../server
    ```
-3. Verify the server builds without errors: `cd server-template && GOWORK=off go build ./...`
-4. Verify the server tests pass: `cd server-template && GOWORK=off go test ./... -v`
+3. Verify the server builds without errors: `cd server && GOWORK=off go build ./...`
+4. Verify the server tests pass: `cd server && GOWORK=off go test ./... -v`
 5. Check that the SDK is built: `cd sdk-js && npm run build`
 6. Check that the SDK tests pass: `cd sdk-js && npm test`
 7. Run local verification: `./scripts/verify-local.sh`
@@ -38,7 +39,7 @@ Run pre-deploy checks and prepare the slot machine game server for deployment.
 
 ## Read Scope
 
-- `server-template/` — Go server source for build verification
+- `server/` — Go server source for build verification
 - `sdk-js/` — TypeScript SDK source for build verification
 - `cli/` — Deploy CLI for preflight execution
 - `scripts/verify-local.sh` — Local verification script
@@ -50,8 +51,8 @@ Run pre-deploy checks and prepare the slot machine game server for deployment.
 ## Checks
 
 1. Deploy CLI is available (exits 0 with version output)
-2. Server builds: `cd server-template && GOWORK=off go build ./...`
-3. Server tests pass: `cd server-template && GOWORK=off go test ./... -v`
+2. Server builds: `cd server && GOWORK=off go build ./...`
+3. Server tests pass: `cd server && GOWORK=off go test ./... -v`
 4. SDK builds: `cd sdk-js && npm run build`
 5. SDK tests pass: `cd sdk-js && npm test`
 6. CLI preflight passes

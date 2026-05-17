@@ -3,6 +3,9 @@
 #
 # Usage: ./scripts/verify-local.sh [server_url]
 #
+# Validates the plugin repository itself. The server source lives at
+# server-template/ here; consuming projects use server/ instead.
+#
 # Starts the Go server, runs SDK-backed activity-loop checks, and reports
 # actionable results.
 

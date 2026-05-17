@@ -88,7 +88,11 @@ catch (error) {
 
 **Diagnosis:**
 ```bash
+# In the plugin repository:
 cd server-template && GOWORK=off go test ./... -v
+
+# In a consuming game project:
+cd server && GOWORK=off go test ./... -v
 ```
 
 **Common causes:**
@@ -101,7 +105,7 @@ cd server-template && GOWORK=off go test ./... -v
 **Symptoms:** CLI exits with `PREFLIGHT_FAILED` or `CONFIG_ERROR`, deploy fails immediately.
 
 **Fix:**
-1. Run `game-designer preflight --server-path .` to see which checks fail
+1. Run `game-designer preflight --server-path .` to see which checks fail (`../server` in consuming projects)
 2. For production: set `GD_IDENTIFIER` and `GD_PASSWORD` environment variables
 3. Check that required mode-specific flags are provided (e.g., `--package-path` for create)
 

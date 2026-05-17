@@ -12,7 +12,7 @@ Connect the Game Designer TypeScript SDK to an H5 slot machine game project.
 
 - Node.js 18+ installed and on PATH
 - The plugin installed with `sdk-js/` accessible
-- A running game server (from `gd-create-server`) or a known server URL
+- A running game server (from `gd-create-server`, running from `server/`) or a known server URL
 
 ## When to Apply
 

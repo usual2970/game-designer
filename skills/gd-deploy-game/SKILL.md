@@ -1,12 +1,12 @@
 ---
-name: gd-deploy-server
-description: Deploy the game server to the team PaaS
-trigger: user asks to deploy the game server, push to PaaS, release the backend
+name: gd-deploy-game
+description: Deploy the game package (backend, socket, frontend) to the team PaaS
+trigger: user asks to deploy the game, push to PaaS, release the game, publish the game package
 ---
 
-# gd-deploy-server
+# gd-deploy-game
 
-Deploy the slot machine game server to the team PaaS using the CLI.
+Deploy the slot machine game package to the team PaaS using the CLI. Production deployment publishes three surfaces through `buildConfig`: backend, socket, and frontend.
 
 ## Prerequisites
 
@@ -16,9 +16,23 @@ Deploy the slot machine game server to the team PaaS using the CLI.
 
 ## When to Apply
 
-- The user asks to deploy the game server
-- The user asks to push to PaaS or release the backend
+- The user asks to deploy the game or publish the game package
+- The user asks to push to PaaS or release the game
 - After local verification passes
+
+## Three-Surface Deployment Model
+
+Production 3os deployment publishes one game package with three configured surfaces:
+
+| Surface | Purpose | Example `workDir` | Example `cmd` |
+|---------|---------|-------------------|---------------|
+| `backend` | Admin/backend service | `admin` | `./server_lucky77pro -type admin` |
+| `socket` | Game logic / realtime service | `logic` | `./server_lucky77pro -type logic` |
+| `frontend` | H5 static game client | `h5/20250624143413` | (empty — static files) |
+
+Backend and socket may be the same binary launched with different commands, ports, or modes (for example, `./server -type admin` vs `./server -type logic`). Frontend is typically static H5 output and does not require a startup command.
+
+These surfaces map to CLI flags: `--backend-dir`, `--backend-cmd`, `--frontend-dir`, `--frontend-cmd`, `--socket-dir`, `--socket-cmd`.
 
 ## What This Skill Does
 
@@ -66,6 +80,7 @@ Deploy the slot machine game server to the team PaaS using the CLI.
      --backend-dir "<dir>" \
      --backend-cmd "<cmd>" \
      --frontend-dir "<dir>" \
+     --frontend-cmd "" \
      --socket-dir "<dir>" \
      --socket-cmd "<cmd>"
 
@@ -91,9 +106,32 @@ Deploy the slot machine game server to the team PaaS using the CLI.
      --review-uri <review-uri>
    ```
 
+### buildConfig Example
+
+The 3os API expects a `buildConfig` with three entries. Here is the concrete shape:
+
+```json
+{
+  "buildConfig": {
+    "backend": {
+      "workDir": "lucky77pro_1.0.7_20250625/admin",
+      "cmd": "./server_lucky77pro -type admin"
+    },
+    "frontend": {
+      "workDir": "lucky77pro_1.0.7_20250625/h5/20250624143413",
+      "cmd": ""
+    },
+    "socket": {
+      "workDir": "lucky77pro_1.0.7_20250625/logic",
+      "cmd": "./server_lucky77pro -type logic"
+    }
+  }
+}
+```
+
 ## Read Scope
 
-- `server-template/` — Go server source for deployment
+- `server/` — Go server source for deployment
 - `cli/` — Deploy CLI for execution
 - `scripts/verify-deployed.sh` — Deployed verification script
 
@@ -113,12 +151,13 @@ Deploy the slot machine game server to the team PaaS using the CLI.
 ## Success Output
 
 ```
-Deployment successful.
+Game deployment successful.
 - Provider: 3os (or fake)
 - Mode: create
 - Game URI: <game-uri>
 - URL: https://...
 - Version: 1.0.0
+- Surfaces: backend, socket, frontend
 - Health: OK
 - Review: applied (or skipped)
 ```
@@ -136,12 +175,3 @@ Deployment successful.
 - `DEPLOY_FAILED`: Check PaaS provider logs and configuration
 - `HEALTH_CHECK_FAILED`: The service deployed but is not responding correctly
 - `INTERNAL_ERROR`: Retry once. If persistent, check CLI version and provider config
-
-## Error Recovery
-
-- If deploy CLI missing: use `gd-setup-cli` skill to build it
-- If `PREFLIGHT_FAILED`: use `gd-prepare-deploy` skill to resolve issues
-- If `AUTH_FAILED`: verify credentials with the user
-- If `UPLOAD_FAILED`: ensure package file exists and is readable
-- If `PUBLISH_FAILED`/`REVIEW_FAILED`: use `gd-debug-integration` skill to diagnose
-- If `PARTIAL_SUCCESS`: game is published, retry `--mode apply-review` separately

@@ -7,10 +7,10 @@ Step-by-step instructions for a code agent to connect and deploy a slot machine 
 The golden path has six steps, each mapped to a plugin skill:
 
 0. **gd-setup-cli** — Build and verify the deploy CLI (first use only)
-1. **gd-create-server** — Scaffold the Go server
+1. **gd-create-server** — Scaffold the Go server into `server/`
 2. **gd-connect-sdk** — Wire the TypeScript SDK into the H5 game
 3. **gd-prepare-deploy** — Run preflight checks
-4. **gd-deploy-server** — Deploy via CLI
+4. **gd-deploy-game** — Deploy the game package via CLI
 5. **gd-debug-integration** — (if needed) Triage failures
 
 Before starting, the agent must have the Game Designer plugin installed. See [Plugin Installation](plugin-installation.md) for setup instructions.
@@ -39,9 +39,9 @@ Skill: gd-create-server
 
 The Go server template provides session, profile, slot config, balance, spin, spin history, and slot leaderboard capabilities behind the OpenAPI contract. The server manages virtual credits for slot machine gameplay.
 
-- Copy `server-template/` into the project
-- Build: `cd server-template && GOWORK=off go build ./...`
-- Start: `cd server-template && GOWORK=off go run ./cmd/server`
+- Copy the plugin's `server-template/` into the target project as `server/`
+- Build: `cd server && GOWORK=off go build ./...`
+- Start: `cd server && GOWORK=off go run ./cmd/server`
 - Verify: `POST /api/v1/session` with `{"playerId":"test"}` returns 200
 
 ## Step 2: Connect the SDK
@@ -84,13 +84,15 @@ Expected output:
 
 If any check fails, fix the issue before proceeding.
 
-## Step 4: Deploy
+## Step 4: Deploy the Game
 
 ```
-Skill: gd-deploy-server
+Skill: gd-deploy-game
 ```
 
-Deploy using the CLI:
+Deploy using the CLI. Production deployment publishes three surfaces — backend, socket, and frontend — through `buildConfig`.
+
+Dry run:
 
 ```bash
 cd cli && GOWORK=off go run ./cmd/game-designer deploy \
@@ -99,9 +101,28 @@ cd cli && GOWORK=off go run ./cmd/game-designer deploy \
   --provider fake
 ```
 
+Production:
+
+```bash
+cd cli && GOWORK=off go run ./cmd/game-designer deploy \
+  --provider 3os \
+  --mode create \
+  --identifier "$GD_IDENTIFIER" \
+  --password "$GD_PASSWORD" \
+  --game-name "<game-name>" \
+  --package-path <path-to-zip> \
+  --version <version> \
+  --change-log "<description>" \
+  --backend-dir "<dir>" \
+  --backend-cmd "<cmd>" \
+  --frontend-dir "<dir>" \
+  --socket-dir "<dir>" \
+  --socket-cmd "<cmd>"
+```
+
 Expected output:
 ```json
-{"success":true,"message":"Deployed to https://<app>.fake.local","code":"SUCCESS"}
+{"success":true,"message":"Deployed to https://<app>.3os.local","code":"SUCCESS"}
 ```
 
 ## Step 5: Verify Deployed

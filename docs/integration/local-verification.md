@@ -2,6 +2,8 @@
 
 Run the local verification script before deploying to PaaS. For plugin package checks, use `./scripts/verify-plugin-package.sh` instead.
 
+> **Note:** This page describes verification inside the plugin repository, where the server source lives at `server-template/`. In a consuming game project created by `gd-create-server`, the server directory is `server/`.
+
 ## Related Verification Scripts
 
 | Script | Purpose |
@@ -13,7 +15,7 @@ Run the local verification script before deploying to PaaS. For plugin package c
 ## Quick Run
 
 ```bash
-# Start the server in a separate terminal
+# Start the server in a separate terminal (repo-local path)
 cd server-template && GOWORK=off go run ./cmd/server
 
 # Run verification

@@ -17,7 +17,7 @@ Build and verify the Go deploy CLI after plugin installation.
 
 - First use after plugin installation
 - The user asks to set up or build the deploy CLI
-- Before running `gd-prepare-deploy` or `gd-deploy-server`
+- Before running `gd-prepare-deploy` or `gd-deploy-game`
 - When the CLI binary is missing or may be stale
 
 ## What This Skill Does

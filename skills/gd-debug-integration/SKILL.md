@@ -12,7 +12,7 @@ Triage and diagnose SDK, server, contract, and deployment integration failures f
 
 - Go 1.24+ installed and on PATH
 - Node.js 18+ installed and on PATH
-- Access to the project directory with `server-template/`, `sdk-js/`, `contracts/`, and `cli/`
+- Access to the project directory with `server/` (consuming project), `sdk-js/`, `contracts/`, and `cli/`
 
 ## When to Apply
 
@@ -33,7 +33,7 @@ Triage and diagnose SDK, server, contract, and deployment integration failures f
 ## Read Scope
 
 - `contracts/` — OpenAPI contract for validation
-- `server-template/` — Go server source for test diagnostics
+- `server/` — Go server source for test diagnostics
 - `sdk-js/` — TypeScript SDK source for test diagnostics
 - `cli/` — Deploy CLI for preflight diagnostics
 - `scripts/` — Verification scripts
@@ -100,7 +100,7 @@ Compare the OpenAPI schemas with the Go server handler responses.
 **Symptoms:** 500 errors, unexpected JSON, missing endpoints
 **Diagnosis:**
 ```bash
-cd server-template && GOWORK=off go test ./... -v
+cd server && GOWORK=off go test ./... -v
 ```
 Run the HTTP integration tests to verify server behavior.
 
@@ -111,7 +111,7 @@ Run the HTTP integration tests to verify server behavior.
 **Symptoms:** CLI exits non-zero, health check fails
 **Diagnosis:**
 ```bash
-cd cli && go run ./cmd/game-designer preflight --server-path ../server-template
+cd cli && go run ./cmd/game-designer preflight --server-path ../server
 ```
 Check preflight output for specific failure points.
 
@@ -124,14 +124,14 @@ Check preflight output for specific failure points.
 - Read the script output for which slot endpoint or check failed
 - Check if the server is running locally on `:8080`
 - Check if the deployed URL is accessible
-- Verify the slot spin loop completes: session → config → balance → spin → history → leaderboard
+- Verify the slot spin loop completes: session -> config -> balance -> spin -> history -> leaderboard
 
 **Fix:** Address the specific endpoint failure, then re-run verification.
 
 ## Checks
 
 1. Contract validates: `cd contracts && npm run validate`
-2. Server tests pass: `cd server-template && GOWORK=off go test ./...`
+2. Server tests pass: `cd server && GOWORK=off go test ./...`
 3. SDK tests pass: `cd sdk-js && npm test`
 4. Server responds locally: `curl -X POST http://localhost:8080/api/v1/session -d '{"playerId":"test"}'`
 5. Slot config available: `curl http://localhost:8080/api/v1/slot/config -H 'X-Session-Token: <token>'`
